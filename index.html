@@ -233,7 +233,6 @@
 
         localforage.config({ name: 'WebGIS_Puglia_DB', storeName: 'pptr_layers' });
 
-        // Pannello comandi impostato su collassato all'avvio
         function toggleMainPanel() { document.getElementById('mainPanel').classList.toggle('collapsed'); }
         function toggleSection(contentId, iconId) {
             const content = document.getElementById(contentId); const icon = document.getElementById(iconId);
@@ -395,7 +394,7 @@
 
         function toggleVectorFolder(i, checked) { 
             vectorLayers[i].active = checked; 
-            vectorLayers[v].items.forEach((item, j) => { 
+            vectorLayers[i].items.forEach((item, j) => { 
                 item.active = checked; 
                 let cb = document.getElementById(`chk_vec_${i}_${j}`);
                 if(cb) cb.checked = checked;
@@ -457,9 +456,6 @@
             layer.on('tileerror', function() { document.body.style.cursor = 'default'; });
         }
 
-        // =========================================================================
-        // ZOOM PER AREA (BOX ZOOM)
-        // =========================================================================
         let boxZoomActive = false;
         let startPoint = null;
         let zoomBox = document.createElement('div');
@@ -519,7 +515,6 @@
             toggleBoxZoom();
         });
 
-        // INIZIALIZZAZIONE E AUTO-INSTALLAZIONE
         window.onload = async function() {
             document.getElementById('loadingOverlay').style.display = 'flex';
             try {
@@ -552,18 +547,62 @@
                         
                         let giaPresente = tempVectorLayers.some(v => v.dbKey === key);
                         if (!giaPresente) { await elaboraZipDati(arrayBuffer, fileName, key, false, tempVectorLayers); }
+                    } else if (key.startsWith('wms_')) {
+                        const wmsData = await localforage.getItem(key);
+                        const nWMS = L.tileLayer.wms(wmsData.url, { layers: wmsData.layerName || '0', format: 'image/png', transparent: true, version: '1.3.0', maxNativeZoom: 19, maxZoom: 25 });
+                        setWmsLoadingCursors(nWMS);
+                        tempWmsLayers.push({ id: 'wms_' + Date.now() + Math.random(), dbKey: key, name: wmsData.name, type: 'wms', layer: nWMS, active: false, opacity: 1 });
                     }
                 }
                 
                 vectorLayers = tempVectorLayers;
+                rasterLayers = [...rasterLayers, ...tempWmsLayers];
+
+                const appState = await localforage.getItem('app_state');
+                if (appState) {
+                    if (appState.rasters) {
+                        let sortedRasters = [];
+                        appState.rasters.forEach(savedRast => {
+                            let found = rasterLayers.find(r => (savedRast.dbKey && r.dbKey === savedRast.dbKey) || (!savedRast.dbKey && r.id === savedRast.id));
+                            if (found) { found.active = savedRast.active; found.opacity = savedRast.opacity; sortedRasters.push(found); }
+                        });
+                        rasterLayers.forEach(r => { if (!sortedRasters.includes(r)) sortedRasters.push(r); });
+                        rasterLayers = sortedRasters;
+                    }
+                    if (appState.vectors) {
+                        let sortedVectors = [];
+                        appState.vectors.forEach(savedVec => {
+                            let found = vectorLayers.find(v => v.dbKey === savedVec.dbKey);
+                            if (found && found.type === 'folder' && savedVec.items) {
+                                if (savedVec.name) found.name = savedVec.name;
+                                found.active = savedVec.active; found.expanded = savedVec.expanded;
+                                let sortedItems = [];
+                                savedVec.items.forEach((savedItem, idx) => {
+                                    let foundItem = found.items.find(i => i.name === savedItem.name);
+                                    if (!foundItem && found.items.length === savedVec.items.length) { foundItem = found.items[idx]; }
+                                    if (foundItem) { 
+                                        foundItem.name = savedItem.name; foundItem.active = savedItem.active; foundItem.opacity = savedItem.opacity;
+                                        foundItem.fill = savedItem.fill !== undefined ? savedItem.fill : true; foundItem.border = savedItem.border !== undefined ? savedItem.border : true;
+                                        if(savedItem.color) foundItem.color = savedItem.color;
+                                        applyVectorStyle(foundItem); sortedItems.push(foundItem); 
+                                    }
+                                });
+                                found.items.forEach(i => { if (!sortedItems.includes(i)) sortedItems.push(i); });
+                                found.items = sortedItems; sortedVectors.push(found);
+                            }
+                        });
+                        vectorLayers.forEach(v => { if (!sortedVectors.includes(v)) sortedVectors.push(v); });
+                        vectorLayers = sortedVectors;
+                    }
+                }
+
                 window.appReady = true; 
                 saveAppState(); 
                 renderLayers();
-            } catch (err) { window.appReady = true; }
+            } catch (err) { console.error(err); window.appReady = true; }
             document.getElementById('loadingOverlay').style.display = 'none';
         };
 
-        // Modificato expanded: false per fare in modo che le cartelle interne nascano chiuse
         function elaboraZipDati(arrayBuffer, fileName, dbKey, salvaInDB, targetArray = vectorLayers) {
             return shp(arrayBuffer).then(function(geojson) {
                 pulisciGeometrie(geojson);
@@ -610,6 +649,84 @@
             } catch(err) { alert("Errore nel caricamento del file."); }
             document.getElementById('loadingOverlay').style.display = 'none';
         });
+
+        // =========================================================================
+        // FUNZIONI RECUPERATE: AGGIUNTA ZIP ESTERNI E WMS
+        // =========================================================================
+        async function aggiungiZipDaURL() {
+            const label = document.getElementById('zipLabel').value.trim() || 'Dato Esterno';
+            const rawUrl = document.getElementById('zipUrl').value.trim();
+            if (!rawUrl) { alert("Inserisci l'URL di un file .zip."); return; }
+            
+            if (rawUrl.toLowerCase().endsWith('.zip')) {
+                document.getElementById('loadingOverlay').style.display = 'flex';
+                try {
+                    const response = await fetch(rawUrl);
+                    if (!response.ok) throw new Error("Inaccessibile");
+                    const arrayBuffer = await response.arrayBuffer();
+                    const fileName = rawUrl.substring(rawUrl.lastIndexOf('/') + 1) || 'download_web.zip';
+                    const dbKey = 'zip_' + Date.now();
+                    
+                    await elaboraZipDati(arrayBuffer, label !== 'Dato Esterno' ? label : fileName, dbKey, true);
+                    
+                    document.getElementById('zipLabel').value = ''; document.getElementById('zipUrl').value = '';
+                    document.getElementById('vectorContent').style.display = 'block'; document.getElementById('vectorIcon').innerText = '▼';
+                    renderLayers();
+                    saveAppState();
+                } catch(e) { alert("Impossibile scaricare il file ZIP. Il server remoto blocca l'accesso (CORS)."); }
+                document.getElementById('loadingOverlay').style.display = 'none';
+            } else { alert("L'URL deve terminare con .zip"); }
+        }
+
+        async function aggiungiWMSDaURL() {
+            const label = document.getElementById('wmsLabel').value.trim() || 'Livello WMS';
+            let rawUrl = document.getElementById('wmsUrl').value.trim();
+            const layerName = document.getElementById('wmsLayerName').value.trim() || '0';
+            
+            if (!rawUrl) { alert("Inserisci l'URL di un server WMS."); return; }
+            
+            let cleanUrl = rawUrl.split('?')[0]; 
+            if (cleanUrl.toLowerCase().endsWith('/mapserver')) { cleanUrl += '/WMSServer'; }
+            if (window.location.protocol === 'https:' && cleanUrl.startsWith('http://')) { cleanUrl = cleanUrl.replace('http://', 'https://'); }
+            
+            const dbKey = 'wms_' + Date.now();
+            const wmsData = { name: label, url: cleanUrl, layerName: layerName };
+            
+            await localforage.setItem(dbKey, wmsData);
+            
+            const nWMS = L.tileLayer.wms(cleanUrl, { layers: layerName, format: 'image/png', transparent: true, version: '1.3.0', maxNativeZoom: 19, maxZoom: 25 });
+            setWmsLoadingCursors(nWMS);
+            
+            rasterLayers.push({ id: 'wms_' + Date.now(), dbKey: dbKey, name: label, type: 'wms', layer: nWMS, active: false, opacity: 1 });
+            
+            document.getElementById('wmsLabel').value = ''; document.getElementById('wmsUrl').value = ''; document.getElementById('wmsLayerName').value = '';
+            document.getElementById('rasterContent').style.display = 'block'; document.getElementById('rasterIcon').innerText = '▼';
+            renderLayers();
+            saveAppState();
+            alert("Servizio WMS caricato e salvato nel Database!\nAttiva la spunta per visualizzarlo.");
+        }
+
+        // =========================================================================
+        // FUNZIONI RECUPERATE: ELIMINAZIONE DATI SALVATI
+        // =========================================================================
+        async function eliminaDatoSalvato(dbKey, vectorIndex) {
+            if(!confirm("Vuoi eliminare permanentemente questo livello Vettoriale?")) return;
+            await localforage.removeItem(dbKey);
+            let vLayer = vectorLayers[vectorIndex];
+            vLayer.items.forEach(item => { map.removeLayer(item.layer); shapefileLayers = shapefileLayers.filter(sl => sl !== item.layer); });
+            vectorLayers.splice(vectorIndex, 1);
+            renderLayers();
+            saveAppState();
+        }
+
+        async function eliminaRasterSalvato(dbKey, rasterIndex) {
+            if(!confirm("Vuoi eliminare permanentemente questo WMS?")) return;
+            await localforage.removeItem(dbKey);
+            map.removeLayer(rasterLayers[rasterIndex].layer);
+            rasterLayers.splice(rasterIndex, 1);
+            renderLayers();
+            saveAppState();
+        }
 
         function eseguiRicerca() {
             const tLibera = document.getElementById('searchInput').value.toLowerCase().trim();
@@ -658,6 +775,17 @@
             document.getElementById('searchInput').value = ''; document.getElementById('searchComune').value = ''; document.getElementById('searchFoglio').value = ''; document.getElementById('searchParticella').value = '';
             vectorLayers.forEach(v => { if (v.type === 'folder') { v.items.forEach(item => applyVectorStyle(item)); } });
         }
+
+        // =========================================================================
+        // ATTIVAZIONE TASTO INVIO PER LA RICERCA
+        // =========================================================================
+        document.querySelectorAll('.search-box input').forEach(function(input) {
+            input.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    eseguiRicerca();
+                }
+            });
+        });
 
         function esportaMappa(formato) {
             let titoloPersonalizzato = prompt("Inserisci il titolo dell'elaborato:", "Mappa PPTR Puglia"); if (titoloPersonalizzato === null) return;
