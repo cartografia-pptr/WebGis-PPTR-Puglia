@@ -160,8 +160,11 @@
                         <input type="text" id="wmsLabel" class="wms-input" placeholder="Nome Legenda (es. Vincoli)">
                         <input type="text" id="wmsUrl" class="wms-input" placeholder="URL Server WMS">
                         <input type="text" id="wmsLayerName" class="wms-input" placeholder="Nome Layer tecnico (es. 0)">
+                        <label style="font-size: 11px; color: #555; display: flex; align-items: center; gap: 5px; cursor: pointer; margin-top: 2px;">
+                            <input type="checkbox" id="wmsSaveDb" checked> Salva permanentemente nel browser
+                        </label>
                     </div>
-                    <button class="btn-custom" style="background: #2c3e50; width: 100%; margin-top: 6px;" onclick="aggiungiWMSDaURL()">➕ Salva Livello WMS</button>
+                    <button class="btn-custom" style="background: #2c3e50; width: 100%; margin-top: 6px;" onclick="aggiungiWMSDaURL()">➕ Aggiungi Livello WMS</button>
                 </div>
             </div>
         </div>
@@ -261,27 +264,13 @@
         const orto2013 = L.tileLayer.wms('https://webapps.sit.puglia.it/arcgis/services/BaseMaps/Ortofoto2013/ImageServer/WMSServer', wmsOptions);
         const orto06 = L.tileLayer.wms('https://webapps.sit.puglia.it/arcgis/services/BaseMaps/Ortofoto2006/ImageServer/WMSServer', wmsOptions);
 
-        // =========================================================================
-        // --- QUI PUOI INSERIRE IL TUO WMS FISSO (Sostituisci URL e layer) ---
-        // =========================================================================
-        const mioWmsFisso = L.tileLayer.wms('INSERISCI_QUI_URL_HTTPS_DEL_WMS', { 
-            layers: '0', // Spesso è '0', oppure il nome tecnico del portale
-            format: 'image/png', 
-            transparent: true, 
-            maxNativeZoom: 19, 
-            maxZoom: 25 
-        });
-        // =========================================================================
-
         let rasterLayers = [
             { id: 'osm', name: '🗺️ Mappa Strade (OSM)', layer: baseMapOSM, active: true, opacity: 1 },
             { id: 'catastolocale', name: '🗺️ Catasto Locale (Tasselli QGIS)', layer: mioCatastoLocale, active: false, opacity: 1 },
             { id: 'orto23', name: '📷 Ortofoto Puglia 2023', layer: orto2023, active: false, opacity: 1 },
             { id: 'orto19', name: '📷 Ortofoto Puglia 2019', layer: orto2019, active: false, opacity: 1 },
             { id: 'orto13', name: '📷 Ortofoto Puglia 2013', layer: orto2013, active: false, opacity: 1 },
-            { id: 'orto06', name: '📷 Ortofoto Puglia 2006', layer: orto06, active: false, opacity: 1 },
-            // Qui inseriamo il collegamento visivo al WMS fisso
-            { id: 'wms_fisso_1', name: '🟣 IL MIO WMS PERMANENTE', layer: mioWmsFisso, active: false, opacity: 1 }
+            { id: 'orto06', name: '📷 Ortofoto Puglia 2006', layer: orto06, active: false, opacity: 1 }
         ];
 
         let vectorLayers = []; 
@@ -309,7 +298,8 @@
             let rHtml = '';
             for (let i = rasterLayers.length - 1; i >= 0; i--) {
                 const r = rasterLayers[i];
-                let isUserWms = r.id && r.id.toString().startsWith('wms_') && !r.id.toString().startsWith('wms_fisso');
+                // Mostra il cestino sia per i WMS permanenti che per quelli temporanei
+                let isUserWms = r.id && (r.id.toString().startsWith('wms_') || r.id.toString().startsWith('temp_wms_'));
                 let deleteBtn = isUserWms ? `<button class="btn-order btn-delete" onclick="eliminaRasterSalvato('${r.dbKey || r.id}', ${i})" title="Elimina WMS">🗑️</button>` : '';
 
                 rHtml += `
@@ -693,6 +683,7 @@
             const label = document.getElementById('wmsLabel').value.trim() || 'Livello WMS';
             let rawUrl = document.getElementById('wmsUrl').value.trim();
             const layerName = document.getElementById('wmsLayerName').value.trim() || '0';
+            const salvaPermanente = document.getElementById('wmsSaveDb').checked; // Legge la spunta
             
             if (!rawUrl) { alert("Inserisci l'URL di un server WMS."); return; }
             
@@ -700,21 +691,25 @@
             if (cleanUrl.toLowerCase().endsWith('/mapserver')) { cleanUrl += '/WMSServer'; }
             if (window.location.protocol === 'https:' && cleanUrl.startsWith('http://')) { cleanUrl = cleanUrl.replace('http://', 'https://'); }
             
-            const dbKey = 'wms_' + Date.now();
-            const wmsData = { name: label, url: cleanUrl, layerName: layerName };
-            
-            await localforage.setItem(dbKey, wmsData);
-            
             const nWMS = L.tileLayer.wms(cleanUrl, { layers: layerName, format: 'image/png', transparent: true, version: '1.3.0', maxNativeZoom: 19, maxZoom: 25 });
             setWmsLoadingCursors(nWMS);
             
-            rasterLayers.push({ id: 'wms_' + Date.now(), dbKey: dbKey, name: label, type: 'wms', layer: nWMS, active: false, opacity: 1 });
+            if (salvaPermanente) {
+                const dbKey = 'wms_' + Date.now();
+                const wmsData = { name: label, url: cleanUrl, layerName: layerName };
+                await localforage.setItem(dbKey, wmsData);
+                rasterLayers.push({ id: 'wms_' + Date.now(), dbKey: dbKey, name: label, type: 'wms', layer: nWMS, active: false, opacity: 1 });
+                alert("Servizio WMS salvato! Sarà disponibile anche ai prossimi riavvii.");
+            } else {
+                const tempId = 'temp_wms_' + Date.now();
+                rasterLayers.push({ id: tempId, name: label, type: 'wms', layer: nWMS, active: false, opacity: 1 });
+                alert("Servizio WMS aggiunto solo per questa sessione!");
+            }
             
             document.getElementById('wmsLabel').value = ''; document.getElementById('wmsUrl').value = ''; document.getElementById('wmsLayerName').value = '';
             document.getElementById('rasterContent').style.display = 'block'; document.getElementById('rasterIcon').innerText = '▼';
             renderLayers();
             saveAppState();
-            alert("Servizio WMS caricato e salvato nel Database!\nAttiva la spunta per visualizzarlo.");
         }
 
         async function eliminaDatoSalvato(dbKey, vectorIndex) {
@@ -728,8 +723,11 @@
         }
 
         async function eliminaRasterSalvato(dbKey, rasterIndex) {
-            if(!confirm("Vuoi eliminare permanentemente questo WMS?")) return;
-            await localforage.removeItem(dbKey);
+            if(!confirm("Vuoi rimuovere questo WMS?")) return;
+            // Lo elimina dal database solo se è stato salvato permanentemente
+            if (dbKey && dbKey.startsWith('wms_')) {
+                await localforage.removeItem(dbKey);
+            }
             map.removeLayer(rasterLayers[rasterIndex].layer);
             rasterLayers.splice(rasterIndex, 1);
             renderLayers();
