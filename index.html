@@ -261,13 +261,27 @@
         const orto2013 = L.tileLayer.wms('https://webapps.sit.puglia.it/arcgis/services/BaseMaps/Ortofoto2013/ImageServer/WMSServer', wmsOptions);
         const orto06 = L.tileLayer.wms('https://webapps.sit.puglia.it/arcgis/services/BaseMaps/Ortofoto2006/ImageServer/WMSServer', wmsOptions);
 
+        // =========================================================================
+        // --- QUI PUOI INSERIRE IL TUO WMS FISSO (Sostituisci URL e layer) ---
+        // =========================================================================
+        const mioWmsFisso = L.tileLayer.wms('INSERISCI_QUI_URL_HTTPS_DEL_WMS', { 
+            layers: '0', // Spesso è '0', oppure il nome tecnico del portale
+            format: 'image/png', 
+            transparent: true, 
+            maxNativeZoom: 19, 
+            maxZoom: 25 
+        });
+        // =========================================================================
+
         let rasterLayers = [
             { id: 'osm', name: '🗺️ Mappa Strade (OSM)', layer: baseMapOSM, active: true, opacity: 1 },
             { id: 'catastolocale', name: '🗺️ Catasto Locale (Tasselli QGIS)', layer: mioCatastoLocale, active: false, opacity: 1 },
             { id: 'orto23', name: '📷 Ortofoto Puglia 2023', layer: orto2023, active: false, opacity: 1 },
             { id: 'orto19', name: '📷 Ortofoto Puglia 2019', layer: orto2019, active: false, opacity: 1 },
             { id: 'orto13', name: '📷 Ortofoto Puglia 2013', layer: orto2013, active: false, opacity: 1 },
-            { id: 'orto06', name: '📷 Ortofoto Puglia 2006', layer: orto06, active: false, opacity: 1 }
+            { id: 'orto06', name: '📷 Ortofoto Puglia 2006', layer: orto06, active: false, opacity: 1 },
+            // Qui inseriamo il collegamento visivo al WMS fisso
+            { id: 'wms_fisso_1', name: '🟣 IL MIO WMS PERMANENTE', layer: mioWmsFisso, active: false, opacity: 1 }
         ];
 
         let vectorLayers = []; 
@@ -295,7 +309,7 @@
             let rHtml = '';
             for (let i = rasterLayers.length - 1; i >= 0; i--) {
                 const r = rasterLayers[i];
-                let isUserWms = r.id && r.id.toString().startsWith('wms_');
+                let isUserWms = r.id && r.id.toString().startsWith('wms_') && !r.id.toString().startsWith('wms_fisso');
                 let deleteBtn = isUserWms ? `<button class="btn-order btn-delete" onclick="eliminaRasterSalvato('${r.dbKey || r.id}', ${i})" title="Elimina WMS">🗑️</button>` : '';
 
                 rHtml += `
@@ -650,9 +664,6 @@
             document.getElementById('loadingOverlay').style.display = 'none';
         });
 
-        // =========================================================================
-        // FUNZIONI RECUPERATE: AGGIUNTA ZIP ESTERNI E WMS
-        // =========================================================================
         async function aggiungiZipDaURL() {
             const label = document.getElementById('zipLabel').value.trim() || 'Dato Esterno';
             const rawUrl = document.getElementById('zipUrl').value.trim();
@@ -706,9 +717,6 @@
             alert("Servizio WMS caricato e salvato nel Database!\nAttiva la spunta per visualizzarlo.");
         }
 
-        // =========================================================================
-        // FUNZIONI RECUPERATE: ELIMINAZIONE DATI SALVATI
-        // =========================================================================
         async function eliminaDatoSalvato(dbKey, vectorIndex) {
             if(!confirm("Vuoi eliminare permanentemente questo livello Vettoriale?")) return;
             await localforage.removeItem(dbKey);
@@ -776,9 +784,6 @@
             vectorLayers.forEach(v => { if (v.type === 'folder') { v.items.forEach(item => applyVectorStyle(item)); } });
         }
 
-        // =========================================================================
-        // ATTIVAZIONE TASTO INVIO PER LA RICERCA
-        // =========================================================================
         document.querySelectorAll('.search-box input').forEach(function(input) {
             input.addEventListener('keypress', function(e) {
                 if (e.key === 'Enter') {
