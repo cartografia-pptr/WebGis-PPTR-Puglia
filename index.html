@@ -86,8 +86,10 @@
 
         .leaflet-control-measure { box-shadow: 0 2px 5px rgba(0,0,0,0.3) !important; border: 2px solid #2c3e50 !important; outline: none !important; margin-top: 260px !important; margin-left: 10px !important;}
         .leaflet-control-measure .leaflet-control-measure-toggle { width: 40px !important; height: 40px !important; background-size: 20px 20px !important; outline: none !important; }
-        .custom-popup ul { list-style: none; padding: 0; margin: 0; max-height: 150px; overflow-y: auto; }
-        .custom-popup li { font-size: 12px; margin-bottom: 3px; border-bottom: 1px dashed #eee; }
+        
+        .custom-popup { font-family: 'Segoe UI', Tahoma, sans-serif; }
+        .custom-popup ul { list-style: none; padding: 0; margin: 0; }
+        .custom-popup li { font-size: 11px; margin-bottom: 3px; border-bottom: 1px dashed #eee; padding-bottom: 2px; }
         
         #loadingOverlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.9); z-index: 9999; justify-content: center; align-items: center; flex-direction: column; text-align: center; padding: 20px;}
         .spinner { border: 6px solid #f3f3f3; border-top: 6px solid #3498db; border-radius: 50%; width: 50px; height: 50px; animation: spin 1s linear infinite; }
@@ -128,7 +130,7 @@
                 <span id="vectorIcon">►</span>
             </div>
             <div id="vectorContent" class="section-content" style="display: none;">
-                <p style="font-size: 10px; color: #666; margin: 0 0 5px 0;">Dati salvati in memoria. Puoi spegnere riempimento o bordi.</p>
+                <p style="font-size: 10px; color: #666; margin: 0 0 5px 0;">Clicca in mappa per interrogare più livelli contemporaneamente.</p>
                 <div id="vectorContainer" class="layer-manager"></div>
 
                 <div style="border-top: 1px dashed #ccc; padding-top: 10px; margin-top: 5px;">
@@ -209,11 +211,9 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script> 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/chroma-js/2.4.2/chroma.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/localforage/1.10.0/localforage.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Turf.js/6.5.0/turf.min.js"></script>
     
     <script>
-        // =========================================================================
-        // ⚙️ CONFIGURAZIONE PACCHETTO DATI (DA DISTRIBUIRE)
-        // =========================================================================
         const PACCHETTO_DATI_PREDEFINITO = [
             { url: './dati_pptr/6.1.1_GEOMORFOLOGICHE.zip', nome: '6.1.1 Geomorfologiche' },
             { url: './dati_pptr/6.1.2_IDROLOGICHE.zip', nome: '6.1.2 Idrologiche' },
@@ -223,7 +223,6 @@
             { url: './dati_pptr/6.3.2_PERCETTIVE.zip', nome: '6.3.2 Percettive' },
             { url: './dati_pptr/CTR Confini Comunali.zip', nome: 'CTR Confini Comunali' }
         ];
-        // =========================================================================
 
         window.appReady = false; 
 
@@ -252,13 +251,19 @@
 
         L.control.scale({ imperial: false, position: 'bottomleft' }).addTo(map);
 
-        const wmsOptions = { layers: '0', format: 'image/png', transparent: true, attribution: '© SIT Puglia', maxNativeZoom: 19, maxZoom: 25 };
+        const wmsOptions = { 
+            layers: '0', format: 'image/png', transparent: true, attribution: '© SIT Puglia', 
+            maxNativeZoom: 19, maxZoom: 25, keepBuffer: 8, updateWhenIdle: true 
+        };
 
-        const mioCatastoLocale = L.tileLayer('./catasto_tasselli/{z}/{x}/{y}.png', {
-            minZoom: 14, maxNativeZoom: 21, maxZoom: 25, crossOrigin: true, attribution: '© Elaborazione Interna Catasto'
-        });
-
+        const mioCatastoLocale = L.tileLayer('./catasto_tasselli/{z}/{x}/{y}.png', { minZoom: 14, maxNativeZoom: 21, maxZoom: 25, crossOrigin: true, attribution: '© Elaborazione Interna Catasto' });
         const baseMapOSM = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxNativeZoom: 19, maxZoom: 25, crossOrigin: true });
+        
+        // --- NUOVI LIVELLI SATELLITARI GLOBALI VELOCISSIMI ---
+        const googleSat = L.tileLayer('https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', { maxZoom: 20, attribution: '© Google' });
+        const esriSat = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19, attribution: 'Tiles © Esri' });
+        // ------------------------------------------------------
+
         const orto2023 = L.tileLayer.wms('https://webapps.sit.puglia.it/arcgis/services/BaseMaps/Ortofoto2023/ImageServer/WMSServer', wmsOptions);
         const orto2019 = L.tileLayer.wms('https://webapps.sit.puglia.it/arcgis/services/BaseMaps/Ortofoto2019/ImageServer/WMSServer', wmsOptions);
         const orto2013 = L.tileLayer.wms('https://webapps.sit.puglia.it/arcgis/services/BaseMaps/Ortofoto2013/ImageServer/WMSServer', wmsOptions);
@@ -267,6 +272,10 @@
         let rasterLayers = [
             { id: 'osm', name: '🗺️ Mappa Strade (OSM)', layer: baseMapOSM, active: true, opacity: 1 },
             { id: 'catastolocale', name: '🗺️ Catasto Locale (Tasselli QGIS)', layer: mioCatastoLocale, active: false, opacity: 1 },
+            // Aggiunti Esri e Google Satellite nel menu:
+            { id: 'esrisat', name: '🛰️ Satellite (Esri World Imagery)', layer: esriSat, active: false, opacity: 1 },
+            { id: 'googlesat', name: '🛰️ Satellite (Google Maps)', layer: googleSat, active: false, opacity: 1 },
+            // ------------------------------------------------------
             { id: 'orto23', name: '📷 Ortofoto Puglia 2023', layer: orto2023, active: false, opacity: 1 },
             { id: 'orto19', name: '📷 Ortofoto Puglia 2019', layer: orto2019, active: false, opacity: 1 },
             { id: 'orto13', name: '📷 Ortofoto Puglia 2013', layer: orto2013, active: false, opacity: 1 },
@@ -298,7 +307,6 @@
             let rHtml = '';
             for (let i = rasterLayers.length - 1; i >= 0; i--) {
                 const r = rasterLayers[i];
-                // Mostra il cestino sia per i WMS permanenti che per quelli temporanei
                 let isUserWms = r.id && (r.id.toString().startsWith('wms_') || r.id.toString().startsWith('temp_wms_'));
                 let deleteBtn = isUserWms ? `<button class="btn-order btn-delete" onclick="eliminaRasterSalvato('${r.dbKey || r.id}', ${i})" title="Elimina WMS">🗑️</button>` : '';
 
@@ -385,9 +393,9 @@
 
             item.layer.eachLayer(function(l) {
                 if (l instanceof L.CircleMarker) {
-                    l.setStyle({ fillColor: item.color, color: "#333", weight: item.border !== false ? 1 : 0, opacity: borderOp, fillOpacity: item.fill !== false ? item.opacity * 0.8 : 0 });
+                    l.setStyle({ fillColor: item.color, color: "#333", weight: item.border !== false ? 1 : 0, opacity: borderOp, fillOpacity: item.fill !== false ? item.opacity * 0.8 : 0, interactive: false });
                 } else if (l.setStyle) {
-                    l.setStyle({ color: item.color, fillColor: item.color, weight: weight, opacity: borderOp, fillOpacity: fillOp });
+                    l.setStyle({ color: item.color, fillColor: item.color, weight: weight, opacity: borderOp, fillOpacity: fillOp, interactive: false });
                 }
             });
         }
@@ -553,7 +561,7 @@
                         if (!giaPresente) { await elaboraZipDati(arrayBuffer, fileName, key, false, tempVectorLayers); }
                     } else if (key.startsWith('wms_')) {
                         const wmsData = await localforage.getItem(key);
-                        const nWMS = L.tileLayer.wms(wmsData.url, { layers: wmsData.layerName || '0', format: 'image/png', transparent: true, version: '1.3.0', maxNativeZoom: 19, maxZoom: 25 });
+                        const nWMS = L.tileLayer.wms(wmsData.url, { layers: wmsData.layerName || '0', format: 'image/png', transparent: true, version: '1.3.0', maxNativeZoom: 19, maxZoom: 25, keepBuffer: 8, updateWhenIdle: true });
                         setWmsLoadingCursors(nWMS);
                         tempWmsLayers.push({ id: 'wms_' + Date.now() + Math.random(), dbKey: key, name: wmsData.name, type: 'wms', layer: nWMS, active: false, opacity: 1 });
                     }
@@ -618,15 +626,9 @@
                     let layerColor = getRandomColor();
                     try {
                         let newLayer = L.geoJSON(data, {
-                            style: function() { return { color: layerColor, fillColor: layerColor, weight: 2, fillOpacity: 0.5, opacity: 1 }; },
-                            onEachFeature: function(feature, layer) {
-                                if (feature.properties) {
-                                    layer.bindPopup(function() {
-                                        let popupStr = "<div class='custom-popup'><b>Dati:</b><ul>";
-                                        for (let prop in feature.properties) { popupStr += `<li><b>${prop}:</b> ${feature.properties[prop]}</li>`; }
-                                        return popupStr + "</ul></div>";
-                                    });
-                                }
+                            style: function() { return { color: layerColor, fillColor: layerColor, weight: 2, fillOpacity: 0.5, opacity: 1, interactive: false }; },
+                            pointToLayer: function (feature, latlng) {
+                                return L.circleMarker(latlng, { radius: 6, interactive: false });
                             }
                         });
                         newFolder.items.push({ name: name, layer: newLayer, active: false, opacity: 1, color: layerColor, fill: true, border: true });
@@ -683,7 +685,7 @@
             const label = document.getElementById('wmsLabel').value.trim() || 'Livello WMS';
             let rawUrl = document.getElementById('wmsUrl').value.trim();
             const layerName = document.getElementById('wmsLayerName').value.trim() || '0';
-            const salvaPermanente = document.getElementById('wmsSaveDb').checked; // Legge la spunta
+            const salvaPermanente = document.getElementById('wmsSaveDb').checked;
             
             if (!rawUrl) { alert("Inserisci l'URL di un server WMS."); return; }
             
@@ -691,7 +693,10 @@
             if (cleanUrl.toLowerCase().endsWith('/mapserver')) { cleanUrl += '/WMSServer'; }
             if (window.location.protocol === 'https:' && cleanUrl.startsWith('http://')) { cleanUrl = cleanUrl.replace('http://', 'https://'); }
             
-            const nWMS = L.tileLayer.wms(cleanUrl, { layers: layerName, format: 'image/png', transparent: true, version: '1.3.0', maxNativeZoom: 19, maxZoom: 25 });
+            const nWMS = L.tileLayer.wms(cleanUrl, { 
+                layers: layerName, format: 'image/png', transparent: true, version: '1.3.0', 
+                maxNativeZoom: 19, maxZoom: 25, keepBuffer: 8, updateWhenIdle: true 
+            });
             setWmsLoadingCursors(nWMS);
             
             if (salvaPermanente) {
@@ -724,7 +729,6 @@
 
         async function eliminaRasterSalvato(dbKey, rasterIndex) {
             if(!confirm("Vuoi rimuovere questo WMS?")) return;
-            // Lo elimina dal database solo se è stato salvato permanentemente
             if (dbKey && dbKey.startsWith('wms_')) {
                 await localforage.removeItem(dbKey);
             }
@@ -743,8 +747,8 @@
             if (!tLibera && !tComune && !tFoglio && !tParticella) return resetRicerca();
             
             let trovati = 0;
-            const stileEvidenziato = { color: "#e74c3c", fillColor: "#e74c3c", weight: 4, fillOpacity: 0.8, opacity: 1 };
-            const stileNascosto = { color: "#bdc3c7", fillColor: "#bdc3c7", weight: 1, fillOpacity: 0.05, opacity: 0.1 };
+            const stileEvidenziato = { color: "#e74c3c", fillColor: "#e74c3c", weight: 4, fillOpacity: 0.8, opacity: 1, interactive: false };
+            const stileNascosto = { color: "#bdc3c7", fillColor: "#bdc3c7", weight: 1, fillOpacity: 0.05, opacity: 0.1, interactive: false };
             let searchBounds = L.latLngBounds();
 
             vectorLayers.forEach(v => {
@@ -784,10 +788,70 @@
 
         document.querySelectorAll('.search-box input').forEach(function(input) {
             input.addEventListener('keypress', function(e) {
-                if (e.key === 'Enter') {
-                    eseguiRicerca();
+                if (e.key === 'Enter') { eseguiRicerca(); }
+            });
+        });
+
+        map.on('click', function(e) {
+            if (boxZoomActive) return;
+            
+            document.body.style.cursor = 'wait';
+            let clickedPt = turf.point([e.latlng.lng, e.latlng.lat]);
+            let results = [];
+
+            vectorLayers.forEach(v => {
+                if (v.active && v.items) {
+                    v.items.forEach(item => {
+                        if (item.active && map.hasLayer(item.layer)) {
+                            item.layer.eachLayer(l => {
+                                if (l.feature && l.feature.geometry) {
+                                    let geomType = l.feature.geometry.type;
+                                    let isInside = false;
+
+                                    try {
+                                        if (geomType === 'Polygon' || geomType === 'MultiPolygon') {
+                                            isInside = turf.booleanPointInPolygon(clickedPt, l.feature);
+                                        } else if (geomType === 'Point' || geomType === 'MultiPoint') {
+                                            let pt = turf.point(geomType === 'Point' ? l.feature.geometry.coordinates : l.feature.geometry.coordinates[0]);
+                                            isInside = turf.distance(clickedPt, pt, {units: 'meters'}) < 50; 
+                                        } else if (geomType === 'LineString' || geomType === 'MultiLineString') {
+                                            let line = geomType === 'LineString' ? turf.lineString(l.feature.geometry.coordinates) : turf.multiLineString(l.feature.geometry.coordinates);
+                                            isInside = turf.pointToLineDistance(clickedPt, line, {units: 'meters'}) < 50;
+                                        }
+                                    } catch(err) { console.warn("Geometria complessa saltata nel calcolo"); }
+
+                                    if (isInside) {
+                                        results.push({ layerName: item.name, color: item.color, props: l.feature.properties });
+                                    }
+                                }
+                            });
+                        }
+                    });
                 }
             });
+
+            document.body.style.cursor = 'default';
+
+            if (results.length > 0) {
+                let html = `<div class='custom-popup'>
+                    <h3 style="margin: 0 0 10px 0; border-bottom: 2px solid #3498db; padding-bottom: 5px;">📍 Trovati ${results.length} elementi sovrapposti</h3>
+                    <div style='max-height: 250px; overflow-y: auto; overflow-x: hidden;'>`;
+                
+                results.forEach(r => {
+                    html += `<div style="margin-bottom: 10px; border: 1px solid #eee; border-left: 4px solid ${r.color}; padding: 5px; background: #fafafa;">
+                                <h4 style="margin: 0 0 5px 0; font-size: 13px; color: #2c3e50;">${r.layerName}</h4>
+                                <ul style="list-style: none; padding: 0; margin: 0;">`;
+                    for(let p in r.props) { 
+                        if(r.props[p] !== null && r.props[p] !== "") {
+                            html += `<li><b>${p}:</b> ${r.props[p]}</li>`; 
+                        }
+                    }
+                    html += `</ul></div>`;
+                });
+                html += `</div></div>`;
+                
+                L.popup({ maxWidth: 350, minWidth: 250 }).setLatLng(e.latlng).setContent(html).openOn(map);
+            }
         });
 
         function esportaMappa(formato) {
