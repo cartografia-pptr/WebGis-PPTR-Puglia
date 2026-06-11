@@ -216,15 +216,18 @@
     
     <script>
         const PACCHETTO_DATI_PREDEFINITO = [
-            { url: './dati_pptr/6.1.1_GEOMORFOLOGICHE.zip', nome: '6.1.1 Geomorfologiche' },
-            { url: './dati_pptr/6.1.2_IDROLOGICHE.zip', nome: '6.1.2 Idrologiche' },
-            { url: './dati_pptr/6.2.1_BOTANICO_VEGETAZIONALI.zip', nome: '6.2.1 Botanico Vegetazionali' },
-            { url: './dati_pptr/6.2.2_AREE_PROTETTE.zip', nome: '6.2.2 Aree Protette' },
-            { url: './dati_pptr/6.3.1_CULTURALI.zip', nome: '6.3.1 Culturali' },
-            { url: './dati_pptr/6.3.2_PERCETTIVE.zip', nome: '6.3.2 Percettive' },
-            { url: './dati_pptr/CTR Confini Comunali.zip', nome: 'CTR Confini Comunali' }
-        ];
-
+    { url: './dati_pptr/6.1.1_GEOMORFOLOGICHE.zip', nome: '6.1.1 Geomorfologiche' },
+    { url: './dati_pptr/6.1.2_IDROLOGICHE.zip', nome: '6.1.2 Idrologiche' },
+    { url: './dati_pptr/6.2.1_BOTANICO_VEGETAZIONALI.zip', nome: '6.2.1 Botanico Vegetazionali' },
+    { url: './dati_pptr/6.2.2_AREE_PROTETTE.zip', nome: '6.2.2 Aree Protette' },
+    { url: './dati_pptr/6.3.1_CULTURALI.zip', nome: '6.3.1 Culturali' },
+    { url: './dati_pptr/6.3.2_PERCETTIVE.zip', nome: '6.3.2 Percettive' },
+    { url: './dati_pptr/CTR Confini Comunali.zip', nome: 'CTR Confini Comunali' },
+    
+    // Nuovi livelli aggiunti per l'autoinstallazione
+    { url: './dati_pptr/Stato della pianificazione in relazione al PPTR GIU 2026.zip', nome: 'Stato Pianificazione PPTR (Giu 2026)' },
+    { url: './dati_pptr/art_142_CO_2_VIGENTE_GIU_2026.zip', nome: 'Art. 142 Co. 2 Vigente (Giu 2026)' }
+];
         window.appReady = false; 
 
         if (typeof proj4 !== 'undefined') {
