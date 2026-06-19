@@ -222,7 +222,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Turf.js/6.5.0/turf.min.js"></script>
     
     <script>
-        const APP_VERSION = "1.5"; // VERSIONE CON RE-INSTALLAZIONE VETTORIALI E RETINI
+        const APP_VERSION = "1.5"; 
 
         const PACCHETTO_DATI_PREDEFINITO = [
             { url: './dati_pptr/6.1.1_GEOMORFOLOGICHE.zip', nome: '6.1.1 Geomorfologiche' },
@@ -319,12 +319,10 @@
 
         const mioCatastoLocale = L.tileLayer('./catasto_tasselli/{z}/{x}/{y}.png', { minZoom: 14, maxNativeZoom: 21, maxZoom: 25, crossOrigin: true, attribution: '© Elaborazione Interna Catasto' });
         const baseMapOSM = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxNativeZoom: 19, maxZoom: 25, crossOrigin: true });
-        const openTopoMap = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
-            maxNativeZoom: 17,
-            maxZoom: 25,
-            crossOrigin: true,
-            attribution: 'Map data: © OpenStreetMap contributors, SRTM | Map style: © OpenTopoMap (CC-BY-SA)'
-        });
+        
+        // --- LIVELLO BASE STRUTTURATO: OPENTOPO MAP ---
+        const openTopoMap = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', { maxNativeZoom: 15, maxZoom: 25, crossOrigin: true, attribution: '© OpenTopoMap, SRTM' });
+
         const googleSat = L.tileLayer('https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', { maxZoom: 20, attribution: '© Google' });
         const esriSat = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19, attribution: 'Tiles © Esri' });
 
@@ -333,13 +331,12 @@
         const orto2013 = L.tileLayer.wms('https://webapps.sit.puglia.it/arcgis/services/BaseMaps/Ortofoto2013/ImageServer/WMSServer', wmsOptions);
         const orto06 = L.tileLayer.wms('https://webapps.sit.puglia.it/arcgis/services/BaseMaps/Ortofoto2006/ImageServer/WMSServer', wmsOptions);
 
-        const igmLayer = pmtiles.leafletRasterLayer(new pmtiles.PMTiles('https://pub-c033353f97014eaea6e433680b0aaba6.r2.dev/IGM_25k_Puglia.pmtiles'), { maxNativeZoom: 15, maxZoom: 25, attribution: '© IGM 25k Puglia' });
-        const ctrLayer = pmtiles.leafletRasterLayer(new pmtiles.PMTiles('https://pub-c033353f97014eaea6e433680b0aaba6.r2.dev/PUGLIA_CTR_2006.pmtiles'), { maxNativeZoom: 15, maxZoom: 25, attribution: '© CTR Puglia 2006' });
+        const igmLayer = pmtiles.leafletRasterLayer(new pmtiles.PMTiles('https://pub-c033353f97014eaea6e433680b0aaba6.r2.dev/IGM_25k_Puglia.pmtiles'), { maxNativeZoom: 16, maxZoom: 25, attribution: '© IGM 25k Puglia' });
+        const ctrLayer = pmtiles.leafletRasterLayer(new pmtiles.PMTiles('https://pub-c033353f97014eaea6e433680b0aaba6.r2.dev/PUGLIA_CTR_2006.pmtiles'), { maxNativeZoom: 16, maxZoom: 25, attribution: '© CTR Puglia 2006' });
 
         let rasterLayers = [
-            let rasterLayers = [
             { id: 'osm', name: '🗺️ Mappa Strade (OSM)', layer: baseMapOSM, active: true, opacity: 1 },
-            { id: 'opentopo', name: '⛰️ Mappa Topografica (OpenTopo)', layer: openTopoMap, active: false, opacity: 1 }, // <-- AGGIUNTA QUI
+            { id: 'opentopo', name: '⛰️ Rilievo Topografico (OpenTopo)', layer: openTopoMap, active: false, opacity: 1 },
             { id: 'igm25k', name: '🗺️ IGM 25k Puglia', layer: igmLayer, active: false, opacity: 1 },
             { id: 'ctr2006', name: '🗺️ CTR Puglia 2006', layer: ctrLayer, active: false, opacity: 1 },
             { id: 'catastolocale', name: '🗺️ Catasto Locale (Tasselli QGIS)', layer: mioCatastoLocale, active: false, opacity: 1 },
