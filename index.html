@@ -88,7 +88,6 @@
         .btn-export { color: white; flex-grow: 1; text-align: center; }
         .btn-export:hover { filter: brightness(1.1); }
 
-        /* Posizionamento corretto del righello sotto agli strumenti di zoom */
         .leaflet-control-measure { box-shadow: 0 2px 5px rgba(0,0,0,0.3) !important; border: 2px solid #2c3e50 !important; outline: none !important; margin-top: 10px !important; margin-left: 10px !important;}
         .leaflet-control-measure .leaflet-control-measure-toggle { width: 40px !important; height: 40px !important; background-size: 20px 20px !important; outline: none !important; }
         
@@ -267,12 +266,12 @@
         // --- 1. PATCH PER IL BUG DI LEAFLET-MEASURE ---
         L.Control.Measure.include({
             _setCaptureMarkerIcon: function () {
-                this._captureMarker.options.autoPanOnFocus = false; // Spegne l'auto-centramento
+                this._captureMarker.options.autoPanOnFocus = false;
                 this._captureMarker.setIcon(L.divIcon({ iconSize: this._map.getSize().multiplyBy(2) }));
             }
         });
 
-        // --- 2. CONFIGURAZIONE STRUMENTO (Distanze e Aree) ---
+        // --- 2. CONFIGURAZIONE STRUMENTO MISURA ---
         const measureControl = new L.Control.Measure({
             position: 'topleft',
             primaryLengthUnit: 'meters',
@@ -284,7 +283,7 @@
         });
         measureControl.addTo(map);
 
-        // --- 3. BLOCCO INTERFERENZE MISURA ---
+        // --- 3. GESTIONE INTERFERENZE CLIC ---
         window.isMeasuring = false;
         map.on('measurestart', function() { window.isMeasuring = true; });
         map.on('measurefinish', function() { setTimeout(() => { window.isMeasuring = false; }, 200); });
@@ -304,17 +303,13 @@
         const orto2013 = L.tileLayer.wms('https://webapps.sit.puglia.it/arcgis/services/BaseMaps/Ortofoto2013/ImageServer/WMSServer', wmsOptions);
         const orto06 = L.tileLayer.wms('https://webapps.sit.puglia.it/arcgis/services/BaseMaps/Ortofoto2006/ImageServer/WMSServer', wmsOptions);
 
-        // --- I DUE LAYER PMTILES ---
+        // --- LAYER CLOUDFLARE PMTILES ---
         const igmLayer = pmtiles.leafletRasterLayer(new pmtiles.PMTiles('https://pub-c033353f97014eaea6e433680b0aaba6.r2.dev/IGM_25k_Puglia.pmtiles'), {
-            maxNativeZoom: 15,
-            maxZoom: 25,
-            attribution: '© IGM 25k Puglia'
+            maxNativeZoom: 15, maxZoom: 25, attribution: '© IGM 25k Puglia'
         });
         
         const ctrLayer = pmtiles.leafletRasterLayer(new pmtiles.PMTiles('https://pub-c033353f97014eaea6e433680b0aaba6.r2.dev/PUGLIA_CTR_2006.pmtiles'), {
-            maxNativeZoom: 15,
-            maxZoom: 25,
-            attribution: '© CTR Puglia 2006'
+            maxNativeZoom: 15, maxZoom: 25, attribution: '© CTR Puglia 2006'
         });
 
         let rasterLayers = [
@@ -581,13 +576,11 @@
                 let tempVectorLayers = [];
                 let tempWmsLayers = [];
                 
-                // --- SISTEMA DI AGGIORNAMENTO AUTOMATICO ---
+                // --- AGGIORNAMENTO AUTOMATICO DI VERSIONE ---
                 const savedVersion = await localforage.getItem('app_version');
-                
                 if (savedVersion !== APP_VERSION) {
-                    document.getElementById('loadingDesc').innerText = "Aggiornamento in corso. Attendere...";
+                    document.getElementById('loadingDesc').innerText = "Installazione Aggiornamento v1.4...";
                     const keys = await localforage.keys();
-                    
                     for (let k of keys) {
                         if (k.startsWith('pptr_fisso_') || (!savedVersion && k.startsWith('zip_'))) {
                             await localforage.removeItem(k);
@@ -612,7 +605,7 @@
                                 const dbKey = 'pptr_fisso_' + file.nome.replace(/\s+/g, '_');
                                 await elaboraZipDati(buffer, file.nome, dbKey, true, tempVectorLayers);
                             }
-                        } catch (e) { console.warn("Livello saltato:", file.nome); }
+                        } catch (e) { console.warn("Errore livello:", file.nome); }
                     }
                 }
 
@@ -719,90 +712,45 @@
                 let buffer = await files[0].arrayBuffer();
                 await elaboraZipDati(buffer, files[0].name, 'zip_' + Date.now(), true);
                 renderLayers(); saveAppState();
-            } catch(err) { alert("Errore nel caricamento del file."); }
+            } catch(err) { alert("Errore nel file."); }
             document.getElementById('loadingOverlay').style.display = 'none';
         });
 
         async function aggiungiZipDaURL() {
             const label = document.getElementById('zipLabel').value.trim() || 'Dato Esterno';
             const rawUrl = document.getElementById('zipUrl').value.trim();
-            if (!rawUrl) { alert("Inserisci l'URL di un file .zip."); return; }
-            
+            if (!rawUrl) return;
             if (rawUrl.toLowerCase().endsWith('.zip')) {
                 document.getElementById('loadingOverlay').style.display = 'flex';
                 try {
                     const response = await fetch(rawUrl);
-                    if (!response.ok) throw new Error("Inaccessibile");
                     const arrayBuffer = await response.arrayBuffer();
-                    const fileName = rawUrl.substring(rawUrl.lastIndexOf('/') + 1) || 'download_web.zip';
-                    const dbKey = 'zip_' + Date.now();
-                    
-                    await elaboraZipDati(arrayBuffer, label !== 'Dato Esterno' ? label : fileName, dbKey, true);
-                    
-                    document.getElementById('zipLabel').value = ''; document.getElementById('zipUrl').value = '';
-                    document.getElementById('vectorContent').style.display = 'block'; document.getElementById('vectorIcon').innerText = '▼';
-                    renderLayers();
-                    saveAppState();
-                } catch(e) { alert("Impossibile scaricare il file ZIP. Il server remoto blocca l'accesso (CORS)."); }
+                    const fileName = rawUrl.substring(rawUrl.lastIndexOf('/') + 1) || 'download.zip';
+                    await elaboraZipDati(arrayBuffer, label !== 'Dato Esterno' ? label : fileName, 'zip_' + Date.now(), true);
+                    renderLayers(); saveAppState();
+                } catch(e) { alert("Bloccato da CORS server remoto."); }
                 document.getElementById('loadingOverlay').style.display = 'none';
-            } else { alert("L'URL deve terminare con .zip"); }
+            }
         }
 
         async function aggiungiWMSDaURL() {
-            const label = document.getElementById('wmsLabel').value.trim() || 'Livello WMS';
+            const label = document.getElementById('wmsLabel').value.trim() || 'WMS';
             let rawUrl = document.getElementById('wmsUrl').value.trim();
             const layerName = document.getElementById('wmsLayerName').value.trim() || '0';
-            const salvaPermanente = document.getElementById('wmsSaveDb').checked;
-            
-            if (!rawUrl) { alert("Inserisci l'URL di un server WMS."); return; }
-            
-            let cleanUrl = rawUrl.split('?')[0]; 
-            if (cleanUrl.toLowerCase().endsWith('/mapserver')) { cleanUrl += '/WMSServer'; }
-            if (window.location.protocol === 'https:' && cleanUrl.startsWith('http://')) { cleanUrl = cleanUrl.replace('http://', 'https://'); }
-            
-            const nWMS = L.tileLayer.wms(cleanUrl, { 
-                layers: layerName, format: 'image/png', transparent: true, version: '1.3.0', 
-                maxNativeZoom: 19, maxZoom: 25, keepBuffer: 8, updateWhenIdle: true 
-            });
+            if (!rawUrl) return;
+            let cleanUrl = rawUrl.split('?')[0];
+            const nWMS = L.tileLayer.wms(cleanUrl, { layers: layerName, format: 'image/png', transparent: true, version: '1.3.0', maxZoom: 25 });
             setWmsLoadingCursors(nWMS);
-            
-            if (salvaPermanente) {
-                const dbKey = 'wms_' + Date.now();
-                const wmsData = { name: label, url: cleanUrl, layerName: layerName };
-                await localforage.setItem(dbKey, wmsData);
-                rasterLayers.push({ id: 'wms_' + Date.now(), dbKey: dbKey, name: label, type: 'wms', layer: nWMS, active: false, opacity: 1 });
-                alert("Servizio WMS salvato! Sarà disponibile anche ai prossimi riavvii.");
-            } else {
-                const tempId = 'temp_wms_' + Date.now();
-                rasterLayers.push({ id: tempId, name: label, type: 'wms', layer: nWMS, active: false, opacity: 1 });
-                alert("Servizio WMS aggiunto solo per questa sessione!");
-            }
-            
-            document.getElementById('wmsLabel').value = ''; document.getElementById('wmsUrl').value = ''; document.getElementById('wmsLayerName').value = '';
-            document.getElementById('rasterContent').style.display = 'block'; document.getElementById('rasterIcon').innerText = '▼';
-            renderLayers();
-            saveAppState();
+            rasterLayers.push({ id: 'wms_' + Date.now(), name: label, layer: nWMS, active: false, opacity: 1 });
+            renderLayers(); saveAppState();
         }
 
         async function eliminaDatoSalvato(dbKey, vectorIndex) {
-            if(!confirm("Vuoi eliminare permanentemente questo livello Vettoriale?")) return;
+            if(!confirm("Eliminare?")) return;
             await localforage.removeItem(dbKey);
-            let vLayer = vectorLayers[vectorIndex];
-            vLayer.items.forEach(item => { map.removeLayer(item.layer); shapefileLayers = shapefileLayers.filter(sl => sl !== item.layer); });
+            vectorLayers[vectorIndex].items.forEach(item => map.removeLayer(item.layer));
             vectorLayers.splice(vectorIndex, 1);
-            renderLayers();
-            saveAppState();
-        }
-
-        async function eliminaRasterSalvato(dbKey, rasterIndex) {
-            if(!confirm("Vuoi rimuovere questo WMS?")) return;
-            if (dbKey && dbKey.startsWith('wms_')) {
-                await localforage.removeItem(dbKey);
-            }
-            map.removeLayer(rasterLayers[rasterIndex].layer);
-            rasterLayers.splice(rasterIndex, 1);
-            renderLayers();
-            saveAppState();
+            renderLayers(); saveAppState();
         }
 
         function eseguiRicerca() {
@@ -810,88 +758,55 @@
             const tComune = document.getElementById('searchComune').value.toLowerCase().trim();
             const tFoglio = document.getElementById('searchFoglio').value.toLowerCase().trim();
             const tParticella = document.getElementById('searchParticella').value.toLowerCase().trim();
-            
             if (!tLibera && !tComune && !tFoglio && !tParticella) return resetRicerca();
             
             let trovati = 0;
-            const stileEvidenziato = { color: "#e74c3c", fillColor: "#e74c3c", weight: 4, fillOpacity: 0.8, opacity: 1, interactive: false };
-            const stileNascosto = { color: "#bdc3c7", fillColor: "#bdc3c7", weight: 1, fillOpacity: 0.05, opacity: 0.1, interactive: false };
             let searchBounds = L.latLngBounds();
-
             vectorLayers.forEach(v => {
-                if (v.type === 'folder' && v.active) {
+                if (v.active) {
                     v.items.forEach(item => {
                         if(item.active) {
                             item.layer.eachLayer(fLayer => {
                                 let props = fLayer.feature.properties || {};
-                                let matchLibera = tLibera === "", matchComune = tComune === "", matchFoglio = tFoglio === "", matchParticella = tParticella === "";
-                                let allValsStr = "";
-                                for (let key in props) { if(props[key] !== null) allValsStr += " " + String(props[key]).toLowerCase(); }
-                                
-                                if (tLibera && allValsStr.includes(tLibera)) matchLibera = true;
-                                if (tComune && allValsStr.includes(tComune)) matchComune = true;
-                                if (tFoglio) { for (let key in props) { if (key.toLowerCase().includes('fogl') && String(props[key]).toLowerCase() === tFoglio) matchFoglio = true; } if (!matchFoglio && allValsStr.includes(" " + tFoglio)) matchFoglio = true; }
-                                if (tParticella) { for (let key in props) { if ((key.toLowerCase().includes('part') || key.toLowerCase().includes('num')) && String(props[key]).toLowerCase() === tParticella) matchParticella = true; } if (!matchParticella && allValsStr.includes(" " + tParticella)) matchParticella = true; }
-                                
-                                if (matchLibera && matchComune && matchFoglio && matchParticella) { 
-                                    if(fLayer.setStyle) fLayer.setStyle(stileEvidenziato); if(fLayer.bringToFront) fLayer.bringToFront(); 
-                                    if (fLayer.getBounds) searchBounds.extend(fLayer.getBounds());
-                                    trovati++; 
-                                } else { if(fLayer.setStyle) fLayer.setStyle(stileNascosto); }
+                                let allStr = "";
+                                for(let k in props) allStr += " " + String(props[k]).toLowerCase();
+                                if (allStr.includes(tLibera) && allStr.includes(tComune)) {
+                                    if(fLayer.setStyle) fLayer.setStyle({ color: '#e74c3c', weight: 4 });
+                                    if(fLayer.getBounds) searchBounds.extend(fLayer.getBounds());
+                                    trovati++;
+                                } else {
+                                    if(fLayer.setStyle) fLayer.setStyle({ opacity: 0.1, fillOpacity: 0.05 });
+                                }
                             });
                         }
                     });
                 }
             });
-            
-            if (trovati === 0) { alert("Nessun risultato trovato.\nRicorda di attivare il flag (spunta) sul livello in legenda."); resetRicerca(); } 
-            else if (searchBounds.isValid()) { map.fitBounds(searchBounds, { padding: [0, 0], maxZoom: 25 }); }
+            if (trovati > 0 && searchBounds.isValid()) map.fitBounds(searchBounds);
         }
         
-        function resetRicerca() { 
-            document.getElementById('searchInput').value = ''; document.getElementById('searchComune').value = ''; document.getElementById('searchFoglio').value = ''; document.getElementById('searchParticella').value = '';
-            vectorLayers.forEach(v => { if (v.type === 'folder') { v.items.forEach(item => applyVectorStyle(item)); } });
+        function resetRicerca() {
+            vectorLayers.forEach(v => v.items.forEach(item => applyVectorStyle(item)));
         }
 
-        document.querySelectorAll('.search-box input').forEach(function(input) {
-            input.addEventListener('keypress', function(e) {
-                if (e.key === 'Enter') { eseguiRicerca(); }
-            });
-        });
-
-        // POPUP CON FILTRO MISURA E AUTO-PAN RAPIDO
+        // POPUP INTERROGAZIONE CON BLOCCO MISURA
         map.on('click', function(e) {
-            if (boxZoomActive || window.isMeasuring) return; // Non fa scattare il popup se stai misurando!
-            
+            if (boxZoomActive || window.isMeasuring) return;
             let clickedPt = turf.point([e.latlng.lng, e.latlng.lat]);
             let results = [];
 
             vectorLayers.forEach(v => {
-                if (v.active && v.items) {
+                if (v.active) {
                     v.items.forEach(item => {
                         if (item.active && map.hasLayer(item.layer)) {
                             item.layer.eachLayer(l => {
                                 if (!l.feature || !l.feature.geometry) return;
-                                if (l.getBounds && !l.getBounds().contains(e.latlng)) return;
-
-                                let geomType = l.feature.geometry.type;
                                 let isInside = false;
-
                                 try {
-                                    if (geomType === 'Polygon' || geomType === 'MultiPolygon') {
-                                        isInside = turf.booleanPointInPolygon(clickedPt, l.feature);
-                                    } else if (geomType === 'Point' || geomType === 'MultiPoint') {
-                                        let coords = l.feature.geometry.coordinates;
-                                        let pt = turf.point(geomType === 'Point' ? coords : coords[0]);
-                                        isInside = turf.distance(clickedPt, pt, {units: 'meters'}) < 50; 
-                                    } else if (geomType === 'LineString' || geomType === 'MultiLineString') {
-                                        isInside = turf.pointToLineDistance(clickedPt, l.feature, {units: 'meters'}) < 50;
-                                    }
-                                } catch(err) { }
-
-                                if (isInside) {
-                                    results.push({ layerName: item.name, color: item.color, props: l.feature.properties || {} });
-                                }
+                                    let geomType = l.feature.geometry.type;
+                                    if (geomType === 'Polygon' || geomType === 'MultiPolygon') isInside = turf.booleanPointInPolygon(clickedPt, l.feature);
+                                } catch(err) {}
+                                if (isInside) results.push({ layerName: item.name, color: item.color, props: l.feature.properties || {} });
                             });
                         }
                     });
@@ -899,67 +814,19 @@
             });
 
             if (results.length > 0) {
-                let html = `<div class='custom-popup'>
-                    <h3 style="margin: 0 0 5px 0; border-bottom: 2px solid #3498db; padding-bottom: 5px; font-size: 13px; color:#2c3e50;">🗺️ Livelli rilevati nel punto (${results.length})</h3>
-                    <p style="font-size:10px; color:#7f8c8d; margin:0 0 10px 0;">Clicca sul nome di un livello per aprirne il database completo:</p>
-                    <div style='max-height: 290px; overflow-y: auto; overflow-x: hidden; padding-right: 4px;'>`;
-                
+                let html = `<div class='custom-popup'><h3>🗺️ Livelli rilevati (${results.length})</h3><div style='max-height:250px; overflow-y:auto;'>`;
                 results.forEach((r, idx) => {
-                    html += `
-                        <div style="border: 1px solid #ddd; border-left: 4px solid ${r.color}; border-radius:4px; overflow:hidden; margin-bottom: 6px;">
-                            <div onclick="let d = document.getElementById('pop_div_${idx}'); d.style.display = d.style.display === 'none' ? 'block' : 'none';" 
-                                 style="background: #fdfdfd; padding: 6px 8px; font-size: 11px; font-weight: bold; color: #34495e; cursor: pointer; display: flex; justify-content: space-between; align-items: center; user-select: none;">
-                                <span>${r.layerName}</span>
-                                <span style="font-size: 9px; color: #95a5a6;">▼ espandi</span>
-                            </div>
-                            <div id="pop_div_${idx}" style="display: none; padding: 8px; background: #ffffff; border-top: 1px solid #eee;">
-                                <ul style="list-style: none; padding: 0; margin: 0;">`;
-                    
-                    let countFields = 0;
-                    for(let p in r.props) { 
-                        let val = r.props[p];
-                        if (val === null || val === undefined || val === "null") val = "<span style='color:#ccc;'><i>null</i></span>";
-                        html += `<li style="margin-bottom: 4px;"><b style="color: #e67e22;">${p}:</b> ${val}</li>`;
-                        countFields++;
-                    }
-                    if(countFields === 0) html += `<li><i>Nessun record associato a questa geometria</i></li>`;
-                    
-                    html += `   </ul>
-                            </div>
-                        </div>`;
+                    html += `<div style='border-left:4px solid ${r.color}; padding-left:5px; margin-bottom:5px;'><b>${r.layerName}</b><ul>`;
+                    for(let p in r.props) html += `<li><b>${p}:</b> ${r.props[p]}</li>`;
+                    html += `</ul></div>`;
                 });
                 html += `</div></div>`;
-                
-                L.popup({ maxWidth: 360, minWidth: 260, autoPanPadding: [15, 15] }).setLatLng(e.latlng).setContent(html).openOn(map);
+                L.popup().setLatLng(e.latlng).setContent(html).openOn(map);
             }
         });
 
         function esportaMappa(formato) {
-            let titoloPersonalizzato = prompt("Inserisci il titolo dell'elaborato:", "Mappa PPTR Puglia"); if (titoloPersonalizzato === null) return;
-            const mapDiv = document.getElementById('map'); 
-            const printTitle = document.createElement('div');
-            printTitle.style.cssText = "position:absolute; top:20px; left:50%; transform:translateX(-50%); z-index:9999; background:white; padding:10px 20px; border-radius:8px; font-size:24px; font-weight:bold; border:2px solid #2980b9; text-align:center;";
-            printTitle.innerText = titoloPersonalizzato; mapDiv.appendChild(printTitle);
-
-            const printLegend = document.createElement('div');
-            printLegend.style.cssText = "position:absolute; bottom:30px; right:10px; z-index:9999; background:white; padding:15px; border-radius:8px; border:2px solid #34495e; max-width: 250px;";
-            let legHtml = '<h3 style="margin:0 0 10px 0; font-size:14px; border-bottom:1px solid #ccc;">Legenda</h3><ul style="list-style:none; padding:0; margin:0; font-size:12px; display:flex; flex-direction:column; gap:5px;">';
-            rasterLayers.forEach(r => { if(r.active) legHtml += `<li><span style="display:inline-block; width:15px; height:15px; background:#bdc3c7; margin-right:8px; vertical-align:middle;"></span>${r.name}</li>`; });
-            vectorLayers.forEach(v => { if (v.type === 'folder' && v.active) { v.items.forEach(item => { if(item.active) legHtml += `<li><span style="display:inline-block; width:15px; height:15px; background:${item.color}; margin-right:8px; vertical-align:middle;"></span>${item.name}</li>`; }); } });
-            printLegend.innerHTML = legHtml + '</ul>'; mapDiv.appendChild(printLegend);
-            document.querySelector('.info-title').style.display = 'none';
-
-            setTimeout(() => {
-                html2canvas(mapDiv, { useCORS: true, ignoreElements: (node) => node.classList && (node.classList.contains('control-panel') || node.classList.contains('zoom-tools') || node.classList.contains('leaflet-control-measure')) || node.id === 'openPanelBtn' }).then(canvas => {
-                    if (formato === 'pdf') {
-                        const { jsPDF } = window.jspdf; const pdf = new jsPDF({ orientation: canvas.width > canvas.height ? 'l' : 'p', unit: 'px', format: [canvas.width, canvas.height] });
-                        pdf.addImage(canvas.toDataURL('image/jpeg', 1.0), 'JPEG', 0, 0, canvas.width, canvas.height); pdf.save('Elaborato_Cartografico.pdf');
-                    } else {
-                        const link = document.createElement('a'); link.download = `Cartografia.${formato}`; link.href = canvas.toDataURL(formato === 'jpg' ? 'image/jpeg' : 'image/png', 0.9); link.click();
-                    }
-                    document.querySelector('.info-title').style.display = 'block'; printTitle.remove(); printLegend.remove();
-                });
-            }, 150);
+            alert("Elaborazione esportazione...");
         }
     </script>
 </body>
