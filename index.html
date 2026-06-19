@@ -859,7 +859,7 @@
                 }
             });
 
-            if (results.length > 0) {
+          if (results.length > 0) {
                 let html = `<div class='custom-popup'>
                     <h3 style="margin: 0 0 5px 0; border-bottom: 2px solid #3498db; padding-bottom: 5px; font-size: 13px; color:#2c3e50;">🗺️ Livelli rilevati nel punto (${results.length})</h3>
                     <p style="font-size:10px; color:#7f8c8d; margin:0 0 10px 0;">Clicca sul nome di un livello per aprirne il database completo:</p>
@@ -893,7 +893,6 @@
                 
                 L.popup({ maxWidth: 360, minWidth: 260, autoPanPadding: [15, 15] }).setLatLng(e.latlng).setContent(html).openOn(map);
             }
-        });
 
         function esportaMappa(formato) {
             let titoloPersonalizzato = prompt("Inserisci il titolo dell'elaborato:", "Mappa PPTR Puglia"); if (titoloPersonalizzato === null) return;
