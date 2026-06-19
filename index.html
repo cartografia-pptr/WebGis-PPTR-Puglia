@@ -306,13 +306,13 @@
 
         // --- I DUE LAYER PMTILES ---
         const igmLayer = pmtiles.leafletRasterLayer(new pmtiles.PMTiles('https://pub-c033353f97014eaea6e433680b0aaba6.r2.dev/IGM_25k_Puglia.pmtiles'), {
-            maxNativeZoom: 17,
+            maxNativeZoom: 15,
             maxZoom: 25,
             attribution: '© IGM 25k Puglia'
         });
         
         const ctrLayer = pmtiles.leafletRasterLayer(new pmtiles.PMTiles('https://pub-c033353f97014eaea6e433680b0aaba6.r2.dev/PUGLIA_CTR_2006.pmtiles'), {
-            maxNativeZoom: 17,
+            maxNativeZoom: 15,
             maxZoom: 25,
             attribution: '© CTR Puglia 2006'
         });
