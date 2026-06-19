@@ -209,6 +209,7 @@
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
     
+    <!-- PLUGIN PROTOMAPS PMTILES -->
     <script src="https://unpkg.com/pmtiles@3.2.0/dist/pmtiles.js"></script>
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/proj4js/2.9.0/proj4.js"></script>
@@ -281,14 +282,13 @@
         const orto2013 = L.tileLayer.wms('https://webapps.sit.puglia.it/arcgis/services/BaseMaps/Ortofoto2013/ImageServer/WMSServer', wmsOptions);
         const orto06 = L.tileLayer.wms('https://webapps.sit.puglia.it/arcgis/services/BaseMaps/Ortofoto2006/ImageServer/WMSServer', wmsOptions);
 
-        // --- INTEGRAZIONE DEI DUE NUOVI FILE PMTILES GENERATI IERI ---
+        // --- INTEGRAZIONE DEI DUE NUOVI FILE PMTILES ---
         const p_igm25k = new pmtiles.PMTiles("https://pub-c033353f97014eaea6e433680b0aaba6.r2.dev/IGM_25k_Puglia.pmtiles");
         const layerIgm25k = pmtiles.leafletRasterLayer(p_igm25k, { maxZoom: 18, attribution: 'IGM 25k Puglia via Cloudflare R2' });
 
         const p_ctr2006 = new pmtiles.PMTiles("https://pub-c033353f97014eaea6e433680b0aaba6.r2.dev/PUGLIA_CTR_2006.pmtiles");
         const layerCtr2006 = pmtiles.leafletRasterLayer(p_ctr2006, { maxZoom: 18, attribution: 'CTR 2006 Puglia via Cloudflare R2' });
 
-        // HO REGISTRATO I DUE STRATI DENTRO L'ARRAY RASTER PER FARE IN MODO CHE IL TUO SISTEMA LI GESTISCA IN AUTOMATICO IN LEGENDA
         let rasterLayers = [
             { id: 'osm', name: '🗺️ Mappa Strade (OSM)', layer: baseMapOSM, active: true, opacity: 1 },
             { id: 'catastolocale', name: '🗺️ Catasto Locale (Tasselli QGIS)', layer: mioCatastoLocale, active: false, opacity: 1 },
@@ -547,6 +547,7 @@
             toggleBoxZoom();
         });
 
+        // QUI C'ERA L'ERRORE (Ora è corretto)
         window.onload = async function() {
             document.getElementById('loadingOverlay').style.display = 'flex';
             try {
