@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>WebGis PPTR Puglia</title>
     
-    <!-- META TAG ANTI-CACHE -->
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
     <meta http-equiv="Pragma" content="no-cache" />
     <meta http-equiv="Expires" content="0" />
@@ -89,7 +88,8 @@
         .btn-export { color: white; flex-grow: 1; text-align: center; }
         .btn-export:hover { filter: brightness(1.1); }
 
-        .leaflet-control-measure { box-shadow: 0 2px 5px rgba(0,0,0,0.3) !important; border: 2px solid #2c3e50 !important; outline: none !important; margin-top: 260px !important; margin-left: 10px !important;}
+        /* Posizionamento corretto del righello sotto agli strumenti di zoom */
+        .leaflet-control-measure { box-shadow: 0 2px 5px rgba(0,0,0,0.3) !important; border: 2px solid #2c3e50 !important; outline: none !important; margin-top: 10px !important; margin-left: 10px !important;}
         .leaflet-control-measure .leaflet-control-measure-toggle { width: 40px !important; height: 40px !important; background-size: 20px 20px !important; outline: none !important; }
         
         .custom-popup { font-family: 'Segoe UI', Tahoma, sans-serif; margin: 0; padding: 0; }
@@ -221,7 +221,7 @@
     
     <script>
         // =====================================================================
-        // CONTROLLO VERSIONE (AGGIORNATO A 1.3)
+        // CONTROLLO VERSIONE (AGGIORNATO A 1.4)
         const APP_VERSION = "1.4"; 
         // =====================================================================
 
@@ -233,7 +233,7 @@
             { url: './dati_pptr/6.3.1_CULTURALI.zip', nome: '6.3.1 Culturali' },
             { url: './dati_pptr/6.3.2_PERCETTIVE.zip', nome: '6.3.2 Percettive' },
             { url: './dati_pptr/CTR Confini Comunali.zip', nome: 'CTR Confini Comunali' },
-            { url: './dati_pptr/piani_adeguati_conformi_2026.zip', nome: 'Piani adeguati o conformi (Giu 2026)' },
+            { url: './dati_pptr/piani_adeguati_conformi.zip', nome: 'Piani adeguati o conformi (Giu 2026)' },
             { url: './dati_pptr/art_142_co_2_vigente_giu_2026.zip', nome: 'Art. 142 Co. 2 Vigente' }
         ];
 
@@ -284,17 +284,10 @@
         });
         measureControl.addTo(map);
 
-        // --- 3. BLOCCO INTERFERENZE ---
+        // --- 3. BLOCCO INTERFERENZE MISURA ---
         window.isMeasuring = false;
         map.on('measurestart', function() { window.isMeasuring = true; });
         map.on('measurefinish', function() { setTimeout(() => { window.isMeasuring = false; }, 200); });
-
-        const wmsOptions = { 
-            layers: '0', format: 'image/png', transparent: true, attribution: '© SIT Puglia', 
-            maxNativeZoom: 19, maxZoom: 25, keepBuffer: 8, updateWhenIdle: true 
-        };
-
-        const mioCatastoLocale = L.tileLayer('./catasto_tasselli/{z}/{x}/{y}.png', { minZoom: 14, maxNativeZoom: 21, maxZoom: 25, crossOrigin: true, attribution: '© Elaborazione Interna Catasto' });
 
         const wmsOptions = { 
             layers: '0', format: 'image/png', transparent: true, attribution: '© SIT Puglia', 
@@ -311,16 +304,16 @@
         const orto2013 = L.tileLayer.wms('https://webapps.sit.puglia.it/arcgis/services/BaseMaps/Ortofoto2013/ImageServer/WMSServer', wmsOptions);
         const orto06 = L.tileLayer.wms('https://webapps.sit.puglia.it/arcgis/services/BaseMaps/Ortofoto2006/ImageServer/WMSServer', wmsOptions);
 
-     // --- I DUE LAYER PMTILES ---
+        // --- I DUE LAYER PMTILES ---
         const igmLayer = pmtiles.leafletRasterLayer(new pmtiles.PMTiles('https://pub-c033353f97014eaea6e433680b0aaba6.r2.dev/IGM_25k_Puglia.pmtiles'), {
-            maxNativeZoom: 15, // 👈 AGGIUNGI QUESTA RIGA: ferma le richieste pesanti a zoom elevati
-            maxZoom: 25,       // Ti permette comunque di avvicinarti quanto vuoi
+            maxNativeZoom: 17,
+            maxZoom: 25,
             attribution: '© IGM 25k Puglia'
         });
         
         const ctrLayer = pmtiles.leafletRasterLayer(new pmtiles.PMTiles('https://pub-c033353f97014eaea6e433680b0aaba6.r2.dev/PUGLIA_CTR_2006.pmtiles'), {
-            maxNativeZoom: 15, // 👈 AGGIUNGI QUESTA RIGA
-            maxZoom: 25,       // Ti permette comunque di avvicinarti quanto vuoi
+            maxNativeZoom: 17,
+            maxZoom: 25,
             attribution: '© CTR Puglia 2006'
         });
 
@@ -866,9 +859,9 @@
             });
         });
 
-        // POPUP CON CORREZIONE PER LO SCROLL E AUTO-PAN
+        // POPUP CON FILTRO MISURA E AUTO-PAN RAPIDO
         map.on('click', function(e) {
-            if (boxZoomActive || window.isMeasuring) return;
+            if (boxZoomActive || window.isMeasuring) return; // Non fa scattare il popup se stai misurando!
             
             let clickedPt = turf.point([e.latlng.lng, e.latlng.lat]);
             let results = [];
