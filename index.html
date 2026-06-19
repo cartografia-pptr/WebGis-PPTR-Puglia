@@ -264,6 +264,38 @@
 
         L.control.scale({ imperial: false, position: 'bottomleft' }).addTo(map);
 
+        // --- 1. PATCH PER IL BUG DI LEAFLET-MEASURE ---
+        L.Control.Measure.include({
+            _setCaptureMarkerIcon: function () {
+                this._captureMarker.options.autoPanOnFocus = false; // Spegne l'auto-centramento
+                this._captureMarker.setIcon(L.divIcon({ iconSize: this._map.getSize().multiplyBy(2) }));
+            }
+        });
+
+        // --- 2. CONFIGURAZIONE STRUMENTO (Distanze e Aree) ---
+        const measureControl = new L.Control.Measure({
+            position: 'topleft',
+            primaryLengthUnit: 'meters',
+            secondaryLengthUnit: 'kilometers',
+            primaryAreaUnit: 'sqmeters',
+            secondaryAreaUnit: 'hectares',
+            activeColor: '#e67e22',
+            completedColor: '#27ae60'
+        });
+        measureControl.addTo(map);
+
+        // --- 3. BLOCCO INTERFERENZE ---
+        window.isMeasuring = false;
+        map.on('measurestart', function() { window.isMeasuring = true; });
+        map.on('measurefinish', function() { setTimeout(() => { window.isMeasuring = false; }, 200); });
+
+        const wmsOptions = { 
+            layers: '0', format: 'image/png', transparent: true, attribution: '© SIT Puglia', 
+            maxNativeZoom: 19, maxZoom: 25, keepBuffer: 8, updateWhenIdle: true 
+        };
+
+        const mioCatastoLocale = L.tileLayer('./catasto_tasselli/{z}/{x}/{y}.png', { minZoom: 14, maxNativeZoom: 21, maxZoom: 25, crossOrigin: true, attribution: '© Elaborazione Interna Catasto' });
+
         const wmsOptions = { 
             layers: '0', format: 'image/png', transparent: true, attribution: '© SIT Puglia', 
             maxNativeZoom: 19, maxZoom: 25, keepBuffer: 8, updateWhenIdle: true 
@@ -836,7 +868,7 @@
 
         // POPUP CON CORREZIONE PER LO SCROLL E AUTO-PAN
         map.on('click', function(e) {
-            if (boxZoomActive) return;
+            if (boxZoomActive || window.isMeasuring) return;
             
             let clickedPt = turf.point([e.latlng.lng, e.latlng.lat]);
             let results = [];
