@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>WebGis PPTR Puglia</title>
     
+    <!-- META TAG ANTI-CACHE -->
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
     <meta http-equiv="Pragma" content="no-cache" />
     <meta http-equiv="Expires" content="0" />
@@ -73,6 +74,8 @@
         .layer-controls { display: flex; align-items: center; gap: 5px; }
         .layer-controls input[type="range"] { flex-grow: 1; cursor: pointer; margin: 0; }
         
+        .select-pattern { font-size: 11px; padding: 2px; border-radius: 3px; border: 1px solid #ccc; background: white; cursor: pointer; width: 100%; max-width: 140px; }
+
         .btn-order { background: #ecf0f1; border: 1px solid #ccc; border-radius: 3px; cursor: pointer; padding: 2px 5px; font-size: 10px; flex-shrink: 0;}
         .btn-order:hover { background: #bdc3c7; }
         .btn-order:disabled { opacity: 0.3; cursor: not-allowed; }
@@ -219,19 +222,9 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Turf.js/6.5.0/turf.min.js"></script>
     
     <script>
-        const APP_VERSION = "1.4"; 
+        const APP_VERSION = "1.5"; // VERSIONE AGGIORNATA PER RETINI SANI
 
-        const PACCHETTO_DATI_PREDEFINITO = [
-            { url: './dati_pptr/6.1.1_GEOMORFOLOGICHE.zip', nome: '6.1.1 Geomorfologiche' },
-            { url: './dati_pptr/6.1.2_IDROLOGICHE.zip', nome: '6.1.2 Idrologiche' },
-            { url: './dati_pptr/6.2.1_BOTANICO_VEGETAZIONALI.zip', nome: '6.2.1 Botanico Vegetazionali' },
-            { url: './dati_pptr/6.2.2_AREE_PROTETTE.zip', nome: '6.2.2 Aree Protette' },
-            { url: './dati_pptr/6.3.1_CULTURALI.zip', nome: '6.3.1 Culturali' },
-            { url: './dati_pptr/6.3.2_PERCETTIVE.zip', nome: '6.3.2 Percettive' },
-            { url: './dati_pptr/CTR Confini Comunali.zip', nome: 'CTR Confini Comunali' },
-            { url: './dati_pptr/piani_adeguati_conformi.zip', nome: 'Piani adeguati o conformi (Giu 2026)' },
-            { url: './dati_pptr/art_142_co_2_vigente_giu_2026.zip', nome: 'Art. 142 Co. 2 Vigente' }
-        ];
+        const PACCHETTO_DATI_PREDEFINITO = [];
 
         window.appReady = false; 
 
@@ -255,10 +248,52 @@
         L.Tooltip.prototype.options.autoPan = false;
 
         const map = L.map('map', { 
-            zoomControl: false, preserveDrawingBuffer: true, doubleClickZoom: false, tap: false, preferCanvas: true, maxZoom: 25 
+            zoomControl: false, preserveDrawingBuffer: true, doubleClickZoom: false, tap: false, preferCanvas: false, maxZoom: 25 
         }).setView([41.0000, 16.5000], 8);
 
         L.control.scale({ imperial: false, position: 'bottomleft' }).addTo(map);
+
+        // --- INIEZIONE INIZIALE PATTERN SVG NEL MOTORE DELLA MAPPA ---
+        function generaPatternSVG() {
+            const svgNamespace = "http://www.w3.org/2000/svg";
+            const svgContainer = map._container.querySelector('svg') || document.createElementNS(svgNamespace, "svg");
+            let defs = svgContainer.querySelector('defs');
+            if (!defs) { defs = document.createElementNS(svgNamespace, "defs"); svgContainer.insertBefore(defs, svgContainer.firstChild); }
+
+            // Pattern 1: Linee Oblique
+            if (!document.getElementById('pat-lines')) {
+                let p = document.createElementNS(svgNamespace, "pattern");
+                p.setAttribute('id', 'pat-lines'); p.setAttribute('patternUnits', 'userSpaceOnUse'); p.setAttribute('width', '10'); p.setAttribute('height', '10'); p.setAttribute('patternTransform', 'rotate(45)');
+                let l = document.createElementNS(svgNamespace, "line");
+                l.setAttribute('x1', '0'); l.setAttribute('y1', '0'); l.setAttribute('x2', '0'); l.setAttribute('y2', '10'); l.setAttribute('stroke', '#000000'); l.setAttribute('stroke-width', '2');
+                p.appendChild(l); defs.appendChild(p);
+            }
+            // Pattern 2: Quadretti/Griglia
+            if (!document.getElementById('pat-grid')) {
+                let p = document.createElementNS(svgNamespace, "pattern");
+                p.setAttribute('id', 'pat-grid'); p.setAttribute('patternUnits', 'userSpaceOnUse'); p.setAttribute('width', '12'); p.setAttribute('height', '12');
+                let path = document.createElementNS(svgNamespace, "path");
+                path.setAttribute('d', 'M 12 0 L 0 0 0 12'); path.setAttribute('fill', 'none'); path.setAttribute('stroke', '#000000'); path.setAttribute('stroke-width', '1.5');
+                p.appendChild(path); defs.appendChild(p);
+            }
+            // Pattern 3: Puntinato
+            if (!document.getElementById('pat-dots')) {
+                let p = document.createElementNS(svgNamespace, "pattern");
+                p.setAttribute('id', 'pat-dots'); p.setAttribute('patternUnits', 'userSpaceOnUse'); p.setAttribute('width', '10'); p.setAttribute('height', '10');
+                let c = document.createElementNS(svgNamespace, "circle");
+                c.setAttribute('cx', '5'); c.setAttribute('cy', '5'); c.setAttribute('r', '2'); c.setAttribute('fill', '#000000');
+                p.appendChild(c); defs.appendChild(p);
+            }
+            // Pattern 4: Mattoni
+            if (!document.getElementById('pat-bricks')) {
+                let p = document.createElementNS(svgNamespace, "pattern");
+                p.setAttribute('id', 'pat-bricks'); p.setAttribute('patternUnits', 'userSpaceOnUse'); p.setAttribute('width', '20'); p.setAttribute('height', '10');
+                let path = document.createElementNS(svgNamespace, "path");
+                path.setAttribute('d', 'M 0 0 L 20 0 M 0 5 L 20 5 M 10 0 L 10 5 M 0 5 L 0 10 M 20 5 L 20 10'); path.setAttribute('fill', 'none'); path.setAttribute('stroke', '#000000'); path.setAttribute('stroke-width', '1');
+                p.appendChild(path); defs.appendChild(p);
+            }
+        }
+        map.on('layeradd', setTimeout(generaPatternSVG, 100));
 
         // --- 1. PATCH PER IL BUG DI LEAFLET-MEASURE ---
         L.Control.Measure.include({
@@ -270,25 +305,15 @@
 
         // --- 2. CONFIGURAZIONE STRUMENTO MISURA ---
         const measureControl = new L.Control.Measure({
-            position: 'topleft',
-            primaryLengthUnit: 'meters',
-            secondaryLengthUnit: 'kilometers',
-            primaryAreaUnit: 'sqmeters',
-            secondaryAreaUnit: 'hectares',
-            activeColor: '#e67e22',
-            completedColor: '#27ae60'
+            position: 'topleft', primaryLengthUnit: 'meters', secondaryLengthUnit: 'kilometers', primaryAreaUnit: 'sqmeters', secondaryAreaUnit: 'hectares', activeColor: '#e67e22', completedColor: '#27ae60'
         });
         measureControl.addTo(map);
 
-        // --- 3. GESTIONE INTERFERENZE CLIC ---
         window.isMeasuring = false;
         map.on('measurestart', function() { window.isMeasuring = true; });
         map.on('measurefinish', function() { setTimeout(() => { window.isMeasuring = false; }, 200); });
 
-        const wmsOptions = { 
-            layers: '0', format: 'image/png', transparent: true, attribution: '© SIT Puglia', 
-            maxNativeZoom: 19, maxZoom: 25, keepBuffer: 8, updateWhenIdle: true 
-        };
+        const wmsOptions = { layers: '0', format: 'image/png', transparent: true, attribution: '© SIT Puglia', maxNativeZoom: 19, maxZoom: 25, keepBuffer: 8, updateWhenIdle: true };
 
         const mioCatastoLocale = L.tileLayer('./catasto_tasselli/{z}/{x}/{y}.png', { minZoom: 14, maxNativeZoom: 21, maxZoom: 25, crossOrigin: true, attribution: '© Elaborazione Interna Catasto' });
         const baseMapOSM = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxNativeZoom: 19, maxZoom: 25, crossOrigin: true });
@@ -300,14 +325,8 @@
         const orto2013 = L.tileLayer.wms('https://webapps.sit.puglia.it/arcgis/services/BaseMaps/Ortofoto2013/ImageServer/WMSServer', wmsOptions);
         const orto06 = L.tileLayer.wms('https://webapps.sit.puglia.it/arcgis/services/BaseMaps/Ortofoto2006/ImageServer/WMSServer', wmsOptions);
 
-        // --- LAYER CLOUDFLARE PMTILES ---
-        const igmLayer = pmtiles.leafletRasterLayer(new pmtiles.PMTiles('https://pub-c033353f97014eaea6e433680b0aaba6.r2.dev/IGM_25k_Puglia.pmtiles'), {
-            maxNativeZoom: 15, maxZoom: 25, attribution: '© IGM 25k Puglia'
-        });
-        
-        const ctrLayer = pmtiles.leafletRasterLayer(new pmtiles.PMTiles('https://pub-c033353f97014eaea6e433680b0aaba6.r2.dev/PUGLIA_CTR_2006.pmtiles'), {
-            maxNativeZoom: 15, maxZoom: 25, attribution: '© CTR Puglia 2006'
-        });
+        const igmLayer = pmtiles.leafletRasterLayer(new pmtiles.PMTiles('https://pub-c033353f97014eaea6e433680b0aaba6.r2.dev/IGM_25k_Puglia.pmtiles'), { maxNativeZoom: 15, maxZoom: 25, attribution: '© IGM 25k Puglia' });
+        const ctrLayer = pmtiles.leafletRasterLayer(new pmtiles.PMTiles('https://pub-c033353f97014eaea6e433680b0aaba6.r2.dev/PUGLIA_CTR_2006.pmtiles'), { maxNativeZoom: 15, maxZoom: 25, attribution: '© CTR Puglia 2006' });
 
         let rasterLayers = [
             { id: 'osm', name: '🗺️ Mappa Strade (OSM)', layer: baseMapOSM, active: true, opacity: 1 },
@@ -332,10 +351,7 @@
                 vectors: vectorLayers.map(v => {
                     let obj = { dbKey: v.dbKey, name: v.name, active: v.active, expanded: v.expanded };
                     if (v.type === 'folder') {
-                        obj.items = v.items.map(item => ({ 
-                            name: item.name, active: item.active, opacity: item.opacity, color: item.color,
-                            fill: item.fill, border: item.border
-                        }));
+                        obj.items = v.items.map(item => ({ name: item.name, active: item.active, opacity: item.opacity, color: item.color, fill: item.fill, border: item.border, pattern: item.pattern || 'pieno' }));
                     }
                     return obj;
                 })
@@ -349,7 +365,6 @@
                 const r = rasterLayers[i];
                 let isUserWms = r.id && (r.id.toString().startsWith('wms_') || r.id.toString().startsWith('temp_wms_'));
                 let deleteBtn = isUserWms ? `<button class="btn-order btn-delete" onclick="eliminaRasterSalvato('${r.dbKey || r.id}', ${i})" title="Elimina WMS">🗑️</button>` : '';
-
                 rHtml += `
                     <div class="layer-item">
                         <div class="layer-item-header">
@@ -360,114 +375,125 @@
                                 ${deleteBtn}
                             </div>
                         </div>
-                        <div class="layer-controls">
-                            <span style="font-size:10px;">Opacità:</span>
-                            <input type="range" min="0" max="1" step="0.1" value="${r.opacity}" oninput="opacityRaster(${i}, this.value)">
-                        </div>
-                    </div>
-                `;
+                        <div class="layer-controls"><span style="font-size:10px;">Opacità:</span><input type="range" min="0" max="1" step="0.1" value="${r.opacity}" oninput="opacityRaster(${i}, this.value)"></div>
+                    </div>`;
             }
             document.getElementById('rasterContainer').innerHTML = rHtml;
 
             let vHtml = '';
             for (let i = vectorLayers.length - 1; i >= 0; i--) {
-                const v = vectorLayers[i];
-                let itemsHtml = '';
+                const v = vectorLayers[i]; let itemsHtml = '';
                 if (v.expanded) {
                     itemsHtml += `<div style="margin-left: 10px; border-left: 2px solid #bdc3c7; padding-left: 6px; display:flex; flex-direction:column; gap:4px; margin-top:5px;">`;
                     v.items.forEach((item, j) => {
+                        let curPat = item.pattern || 'pieno';
                         itemsHtml += `
                             <div class="layer-item" style="background:#fff; border-color:#eee; padding:4px;">
                                 <div class="layer-item-header">
                                     <label style="font-size:11px; font-weight:normal; align-items:center;">
                                         <input type="checkbox" id="chk_vec_${i}_${j}" onchange="toggleVectorItem(${i}, ${j}, this.checked)" ${item.active?'checked':''}>
-                                        <input type="color" class="color-picker" value="${item.color}" title="Scegli Colore" onchange="changeVectorColor(${i}, ${j}, this.value)">
-                                        <span style="white-space: nowrap;" title="${item.name}">${item.name}</span>
+                                        <input type="color" class="color-picker" value="${item.color}" onchange="changeVectorColor(${i}, ${j}, this.value)">
+                                        <span style="white-space: nowrap; max-width:110px; overflow:hidden; text-overflow:ellipsis;" title="${item.name}">${item.name}</span>
                                     </label>
                                     <div style="white-space: nowrap; flex-shrink: 0;">
                                         <button class="btn-order" onclick="moveVectorItem(${i}, ${j}, 1)" ${j === v.items.length - 1 ? 'disabled' : ''}>▲</button>
                                         <button class="btn-order" onclick="moveVectorItem(${i}, ${j}, -1)" ${j === 0 ? 'disabled' : ''}>▼</button>
                                     </div>
                                 </div>
-                                <div class="layer-controls">
-                                    <span style="font-size:10px;">Opacità:</span>
-                                    <input type="range" min="0" max="1" step="0.1" value="${item.opacity}" oninput="opacityVectorItem(${i}, ${j}, this.value)">
+                                <div class="layer-controls"><span style="font-size:10px;">Opacità:</span><input type="range" min="0" max="1" step="0.1" value="${item.opacity}" oninput="opacityVectorItem(${i}, ${j}, this.value)"></div>
+                                
+                                <!-- NUOVO SELETTORE RETINI INTEGRATI -->
+                                <div style="display:flex; align-items:center; gap:5px; margin-top:3px;">
+                                    <span style="font-size:10px; color:#555;">Riempimento:</span>
+                                    <select class="select-pattern" onchange="changeVectorPattern(${i}, ${j}, this.value)">
+                                        <option value="pieno" ${curPat==='pieno'?'selected':''}>Colore Pieno</option>
+                                        <option value="linee" ${curPat==='linee'?'selected':''}>Retino Linee</option>
+                                        <option value="griglia" ${curPat==='griglia'?'selected':''}>Retino Quadretti</option>
+                                        <option value="punti" ${curPat==='punti'?'selected':''}>Retino Puntinato</option>
+                                        <option value="mattoni" ${curPat==='mattoni'?'selected':''}>Retino Mattoni</option>
+                                    </select>
                                 </div>
                                 <div style="display:flex; gap:10px; font-size:10px; margin-top:2px; padding-left:2px; color:#555;">
                                     <label><input type="checkbox" onchange="toggleVectorFill(${i}, ${j}, this.checked)" ${item.fill !== false ? 'checked' : ''}> Riempimento</label>
                                     <label><input type="checkbox" onchange="toggleVectorBorder(${i}, ${j}, this.checked)" ${item.border !== false ? 'checked' : ''}> Bordo</label>
                                 </div>
-                            </div>
-                        `;
+                            </div>`;
                     });
                     itemsHtml += `</div>`;
                 }
                 vHtml += `
                     <div class="layer-item layer-group">
                         <div class="layer-item-header">
-                            <label style="color:#2c3e50;">
-                                <input type="checkbox" id="chk_vec_${i}" onchange="toggleVectorFolder(${i}, this.checked)" ${v.active?'checked':''}> 
-                                <span style="white-space: nowrap;">📁 <b>${v.name}</b></span>
-                            </label>
+                            <label style="color:#2c3e50;"><input type="checkbox" id="chk_vec_${i}" onchange="toggleVectorFolder(${i}, this.checked)" ${v.active?'checked':''}> <span>📁 <b>${v.name}</b></span></label>
                             <div style="white-space: nowrap; flex-shrink: 0;">
                                 <button class="btn-order" onclick="toggleVectorCollapse(${i})">${v.expanded ? '▼' : '►'}</button>
                                 <button class="btn-order" onclick="moveVector(${i}, 1)" ${i === vectorLayers.length - 1 ? 'disabled' : ''}>▲</button>
                                 <button class="btn-order" onclick="moveVector(${i}, -1)" ${i === 0 ? 'disabled' : ''}>▼</button>
-                                ${v.dbKey && v.dbKey.startsWith('pptr_fisso_') ? '' : `<button class="btn-order btn-delete" onclick="eliminaDatoSalvato('${v.dbKey}', ${i})" title="Elimina Shapefile">🗑️</button>`}
+                                ${v.dbKey && v.dbKey.startsWith('pptr_fisso_') ? '' : `<button class="btn-order btn-delete" onclick="eliminaDatoSalvato('${v.dbKey}', ${i})" title="Elimina">🗑️</button>`}
                             </div>
                         </div>
                         ${itemsHtml}
-                    </div>
-                `;
+                    </div>`;
             }
             if(vectorLayers.length === 0) vHtml = `<p style="font-size:11px; color:#999; text-align:center;">Nessun dato vettoriale caricato.</p>`;
             document.getElementById('vectorContainer').innerHTML = vHtml;
-            updateMapLayers();
-            reorderMapLayers();
+            updateMapLayers(); reorderMapLayers();
         }
 
         function applyVectorStyle(item) {
             let fillOp = item.fill !== false ? item.opacity * 0.5 : 0;
             let borderOp = item.border !== false ? item.opacity : 0;
             let weight = item.border !== false ? 2 : 0;
+            let patternType = item.pattern || 'pieno';
 
             item.layer.eachLayer(function(l) {
-                if (l instanceof L.CircleMarker) l.setStyle({ fillColor: item.color, color: "#333", weight: item.border !== false ? 1 : 0, opacity: borderOp, fillOpacity: item.fill !== false ? item.opacity * 0.8 : 0, interactive: false });
-                else if (l.setStyle) l.setStyle({ color: item.color, fillColor: item.color, weight: weight, opacity: borderOp, fillOpacity: fillOp, interactive: false });
+                if (l instanceof L.CircleMarker) {
+                    l.setStyle({ fillColor: item.color, color: "#333", weight: item.border !== false ? 1 : 0, opacity: borderOp, fillOpacity: item.fill !== false ? item.opacity * 0.8 : 0 });
+                } else if (l.setStyle) {
+                    l.setStyle({ color: item.color, weight: weight, opacity: borderOp, fillOpacity: fillOp, fillColor: item.color });
+                    
+                    // Se la mappa è rendering SVG e l'utente ha scelto un retino, applichiamo l'ID SVG
+                    if (l._path && item.fill !== false) {
+                        if (patternType === 'linee') { l._path.setAttribute('fill', 'url(#pat-lines)'); document.getElementById('pat-lines').querySelector('line').setAttribute('stroke', item.color); }
+                        else if (patternType === 'griglia') { l._path.setAttribute('fill', 'url(#pat-grid)'); document.getElementById('pat-grid').querySelector('path').setAttribute('stroke', item.color); }
+                        else if (patternType === 'punti') { l._path.setAttribute('fill', 'url(#pat-dots)'); document.getElementById('pat-dots').querySelector('circle').setAttribute('fill', item.color); }
+                        else if (patternType === 'mattoni') { l._path.setAttribute('fill', 'url(#pat-bricks)'); document.getElementById('pat-bricks').querySelector('path').setAttribute('stroke', item.color); }
+                        else { l._path.setAttribute('fill', item.color); }
+                    }
+                }
             });
+        }
+
+        function changeVectorPattern(i, j, patternValue) {
+            vectorLayers[i].items[j].pattern = patternValue;
+            applyVectorStyle(vectorLayers[i].items[j]);
+            saveAppState();
         }
 
         function toggleRaster(i, checked) { rasterLayers[i].active = checked; updateMapLayers(); saveAppState(); }
         function opacityRaster(i, val) { rasterLayers[i].opacity = parseFloat(val); rasterLayers[i].layer.setOpacity(rasterLayers[i].opacity); saveAppState(); }
         function moveRaster(i, dir) { const nIdx = i + dir; if (nIdx < 0 || nIdx >= rasterLayers.length) return; const t = rasterLayers[i]; rasterLayers[i] = rasterLayers[nIdx]; rasterLayers[nIdx] = t; renderLayers(); saveAppState(); }
 
-        function toggleVectorFolder(i, checked) { 
-            vectorLayers[i].active = checked; 
-            vectorLayers[i].items.forEach((item, j) => { item.active = checked; let cb = document.getElementById(`chk_vec_${i}_${j}`); if(cb) cb.checked = checked; }); 
-            updateMapLayers(); saveAppState();
-        }
+        function toggleVectorFolder(i, checked) { vectorLayers[i].active = checked; vectorLayers[i].items.forEach((item, j) => { item.active = checked; let cb = document.getElementById(`chk_vec_${i}_${j}`); if(cb) cb.checked = checked; }); updateMapLayers(); saveAppState(); }
         function toggleVectorCollapse(i) { vectorLayers[i].expanded = !vectorLayers[i].expanded; renderLayers(); saveAppState(); }
         function toggleVectorItem(i, j, checked) { vectorLayers[i].items[j].active = checked; updateMapLayers(); saveAppState(); }
-        
         function changeVectorColor(i, j, newColor) { let item = vectorLayers[i].items[j]; item.color = newColor; applyVectorStyle(item); saveAppState(); }
         function opacityVectorItem(i, j, val) { let item = vectorLayers[i].items[j]; item.opacity = parseFloat(val); applyVectorStyle(item); saveAppState(); }
         function toggleVectorFill(i, j, checked) { let item = vectorLayers[i].items[j]; item.fill = checked; applyVectorStyle(item); saveAppState(); }
         function toggleVectorBorder(i, j, checked) { let item = vectorLayers[i].items[j]; item.border = checked; applyVectorStyle(item); saveAppState(); }
-        
         function moveVector(i, dir) { const nIdx = i + dir; if (nIdx < 0 || nIdx >= vectorLayers.length) return; const t = vectorLayers[i]; vectorLayers[i] = vectorLayers[nIdx]; vectorLayers[nIdx] = t; renderLayers(); saveAppState(); }
         function moveVectorItem(i, j, dir) { let items = vectorLayers[i].items; const nIdx = j + dir; if (nIdx < 0 || nIdx >= items.length) return; const t = items[j]; items[j] = items[nIdx]; items[nIdx] = t; renderLayers(); saveAppState(); }
 
         function updateMapLayers() {
             rasterLayers.forEach(r => { if (r.active && !map.hasLayer(r.layer)) map.addLayer(r.layer); else if (!r.active && map.hasLayer(r.layer)) map.removeLayer(r.layer); });
-            vectorLayers.forEach(v => { v.items.forEach(item => { let show = v.active && item.active; if (show && !map.hasLayer(item.layer)) map.addLayer(item.layer); else if (!show && map.hasLayer(item.layer)) map.removeLayer(item.layer); }); });
+            vectorLayers.forEach(v => { v.items.forEach(item => { let show = v.active && item.active; if (show && !map.hasLayer(item.layer)) { map.addLayer(item.layer); applyVectorStyle(item); } else if (!show && map.hasLayer(item.layer)) map.removeLayer(item.layer); }); });
+            generaPatternSVG();
         }
 
         function reorderMapLayers() {
-            let zIdx = 10;
-            rasterLayers.forEach(r => { if(r.layer.setZIndex) r.layer.setZIndex(zIdx++); });
+            let zIdx = 10; rasterLayers.forEach(r => { if(r.layer.setZIndex) r.layer.setZIndex(zIdx++); });
             vectorLayers.forEach(v => { v.items.forEach(item => { if(item.layer.bringToFront && map.hasLayer(item.layer)) item.layer.bringToFront(); }); });
         }
-        
         function getRandomColor() { return chroma.random().saturate(1.5).hex(); }
 
         function pulisciGeometrie(geo) {
@@ -486,10 +512,8 @@
             layer.on('tileerror', function() { document.body.style.cursor = 'default'; });
         }
 
-        let boxZoomActive = false;
-        let startPoint = null;
-        let zoomBox = document.createElement('div');
-        zoomBox.style.cssText = "position:absolute; border: 2px solid #2980b9; background: rgba(52, 152, 219, 0.3); z-index:9999; pointer-events:none; display:none;";
+        let boxZoomActive = false; let startPoint = null;
+        let zoomBox = document.createElement('div'); zoomBox.style.cssText = "position:absolute; border:2px solid #2980b9; background:rgba(52,152,219,0.3); z-index:9999; pointer-events:none; display:none;";
         document.getElementById('map').appendChild(zoomBox);
 
         function toggleBoxZoom() {
@@ -508,27 +532,12 @@
                 let tempVectorLayers = []; let tempWmsLayers = [];
                 const savedVersion = await localforage.getItem('app_version');
                 if (savedVersion !== APP_VERSION) {
-                    document.getElementById('loadingDesc').innerText = "Installazione Aggiornamento v1.4...";
+                    document.getElementById('loadingDesc').innerText = "Installazione Aggiornamento v1.5 Retini...";
                     const keys = await localforage.keys();
                     for (let k of keys) { if (k.startsWith('pptr_fisso_') || (!savedVersion && k.startsWith('zip_'))) await localforage.removeItem(k); }
                     await localforage.setItem('app_version', APP_VERSION);
                 }
                 
-                let needsInstall = false;
-                if (PACCHETTO_DATI_PREDEFINITO.length > 0) {
-                    const firstLayerKey = 'pptr_fisso_' + PACCHETTO_DATI_PREDEFINITO[0].nome.replace(/\s+/g, '_');
-                    const checkFirst = await localforage.getItem(firstLayerKey); if (!checkFirst) needsInstall = true;
-                }
-
-                if (needsInstall && PACCHETTO_DATI_PREDEFINITO.length > 0) {
-                    for (let file of PACCHETTO_DATI_PREDEFINITO) {
-                        try {
-                            const response = await fetch(file.url);
-                            if (response.ok) { const buffer = await response.arrayBuffer(); const dbKey = 'pptr_fisso_' + file.nome.replace(/\s+/g, '_'); await elaboraZipDati(buffer, file.nome, dbKey, true, tempVectorLayers); }
-                        } catch (e) { }
-                    }
-                }
-
                 const keys = await localforage.keys();
                 for (let key of keys) {
                     if (key.startsWith('zip_') || key.startsWith('pptr_fisso_')) {
@@ -558,7 +567,12 @@
                                 if (savedVec.name) found.name = savedVec.name; found.active = savedVec.active; found.expanded = savedVec.expanded; let sortedItems = [];
                                 savedVec.items.forEach((savedItem, idx) => {
                                     let foundItem = found.items.find(i => i.name === savedItem.name); if (!foundItem && found.items.length === savedVec.items.length) foundItem = found.items[idx];
-                                    if (foundItem) { foundItem.name = savedItem.name; foundItem.active = savedItem.active; foundItem.opacity = savedItem.opacity; foundItem.fill = savedItem.fill !== undefined ? savedItem.fill : true; foundItem.border = savedItem.border !== undefined ? savedItem.border : true; if(savedItem.color) foundItem.color = savedItem.color; applyVectorStyle(foundItem); sortedItems.push(foundItem); }
+                                    if (foundItem) { 
+                                        foundItem.name = savedItem.name; foundItem.active = savedItem.active; foundItem.opacity = savedItem.opacity; 
+                                        foundItem.fill = savedItem.fill !== undefined ? savedItem.fill : true; foundItem.border = savedItem.border !== undefined ? savedItem.border : true;
+                                        foundItem.pattern = savedItem.pattern || 'pieno'; if(savedItem.color) foundItem.color = savedItem.color; 
+                                        sortedItems.push(foundItem); 
+                                    }
                                 });
                                 found.items.forEach(i => { if (!sortedItems.includes(i)) sortedItems.push(i); }); found.items = sortedItems; sortedVectors.push(found);
                             }
@@ -566,7 +580,7 @@
                         vectorLayers.forEach(v => { if (!sortedVectors.includes(v)) sortedVectors.push(v); }); vectorLayers = sortedVectors;
                     }
                 }
-                window.appReady = true; saveAppState(); renderLayers();
+                window.appReady = true; saveAppState(); renderLayers(); generaPatternSVG();
             } catch (err) { window.appReady = true; }
             document.getElementById('loadingOverlay').style.display = 'none';
         };
@@ -578,8 +592,8 @@
                 function addShape(data, name) {
                     if (!data || !data.features || data.features.length === 0) return; let layerColor = getRandomColor();
                     try {
-                        let newLayer = L.geoJSON(data, { style: function() { return { color: layerColor, fillColor: layerColor, weight: 2, fillOpacity: 0.5, opacity: 1, interactive: false }; }, pointToLayer: function (feature, latlng) { return L.circleMarker(latlng, { radius: 6, interactive: false }); } });
-                        newFolder.items.push({ name: name, layer: newLayer, active: false, opacity: 1, color: layerColor, fill: true, border: true });
+                        let newLayer = L.geoJSON(data, { style: function() { return { color: layerColor, fillColor: layerColor, weight: 2, fillOpacity: 0.5, opacity: 1 }; } });
+                        newFolder.items.push({ name: name, layer: newLayer, active: false, opacity: 1, color: layerColor, fill: true, border: true, pattern: 'pieno' });
                     } catch(err) { }
                 }
                 if (Array.isArray(geojson)) geojson.forEach(g => addShape(g, g.fileName || "Strato Vettoriale")); else addShape(geojson, geojson.fileName || zipNameClean);
@@ -618,7 +632,6 @@
             vectorLayers.forEach(v => { if (v.active) { v.items.forEach(item => { if(item.active) { item.layer.eachLayer(fLayer => { let props = fLayer.feature.properties || {}; let allStr = ""; for(let k in props) allStr += " " + String(props[k]).toLowerCase(); if (allStr.includes(tLibera) && allStr.includes(tComune)) { if(fLayer.setStyle) fLayer.setStyle({ color: '#e74c3c', weight: 4 }); if(fLayer.getBounds) searchBounds.extend(fLayer.getBounds()); trovati++; } else { if(fLayer.setStyle) fLayer.setStyle({ opacity: 0.1, fillOpacity: 0.05 }); } }); } }); } });
             if (trovati > 0 && searchBounds.isValid()) map.fitBounds(searchBounds);
         }
-        
         function resetRicerca() { vectorLayers.forEach(v => v.items.forEach(item => applyVectorStyle(item))); }
 
         map.on('click', function(e) {
@@ -630,7 +643,6 @@
                 html += `</div></div>`; L.popup().setLatLng(e.latlng).setContent(html).openOn(map);
             }
         });
-
         function esportaMappa(formato) { alert("Elaborazione esportazione..."); }
     </script>
 </body>
