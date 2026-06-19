@@ -222,9 +222,19 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Turf.js/6.5.0/turf.min.js"></script>
     
     <script>
-        const APP_VERSION = "1.5"; // VERSIONE AGGIORNATA PER RETINI SANI
+        const APP_VERSION = "1.5"; // VERSIONE CON RE-INSTALLAZIONE VETTORIALI E RETINI
 
-        const PACCHETTO_DATI_PREDEFINITO = [];
+        const PACCHETTO_DATI_PREDEFINITO = [
+            { url: './dati_pptr/6.1.1_GEOMORFOLOGICHE.zip', nome: '6.1.1 Geomorfologiche' },
+            { url: './dati_pptr/6.1.2_IDROLOGICHE.zip', nome: '6.1.2 Idrologiche' },
+            { url: './dati_pptr/6.2.1_BOTANICO_VEGETAZIONALI.zip', nome: '6.2.1 Botanico Vegetazionali' },
+            { url: './dati_pptr/6.2.2_AREE_PROTETTE.zip', nome: '6.2.2 Aree Protette' },
+            { url: './dati_pptr/6.3.1_CULTURALI.zip', nome: '6.3.1 Culturali' },
+            { url: './dati_pptr/6.3.2_PERCETTIVE.zip', nome: '6.3.2 Percettive' },
+            { url: './dati_pptr/CTR Confini Comunali.zip', nome: 'CTR Confini Comunali' },
+            { url: './dati_pptr/piani_adeguati_conformi.zip', nome: 'Piani adeguati o conformi (Giu 2026)' },
+            { url: './dati_pptr/art_142_co_2_vigente_giu_2026.zip', nome: 'Art. 142 Co. 2 Vigente' }
+        ];
 
         window.appReady = false; 
 
@@ -253,47 +263,39 @@
 
         L.control.scale({ imperial: false, position: 'bottomleft' }).addTo(map);
 
-        // --- INIEZIONE INIZIALE PATTERN SVG NEL MOTORE DELLA MAPPA ---
+        // --- INIEZIONE INIZIALE PATTERN SVG ---
         function generaPatternSVG() {
             const svgNamespace = "http://www.w3.org/2000/svg";
             const svgContainer = map._container.querySelector('svg') || document.createElementNS(svgNamespace, "svg");
             let defs = svgContainer.querySelector('defs');
             if (!defs) { defs = document.createElementNS(svgNamespace, "defs"); svgContainer.insertBefore(defs, svgContainer.firstChild); }
 
-            // Pattern 1: Linee Oblique
             if (!document.getElementById('pat-lines')) {
                 let p = document.createElementNS(svgNamespace, "pattern");
                 p.setAttribute('id', 'pat-lines'); p.setAttribute('patternUnits', 'userSpaceOnUse'); p.setAttribute('width', '10'); p.setAttribute('height', '10'); p.setAttribute('patternTransform', 'rotate(45)');
-                let l = document.createElementNS(svgNamespace, "line");
-                l.setAttribute('x1', '0'); l.setAttribute('y1', '0'); l.setAttribute('x2', '0'); l.setAttribute('y2', '10'); l.setAttribute('stroke', '#000000'); l.setAttribute('stroke-width', '2');
+                let l = document.createElementNS(svgNamespace, "line"); l.setAttribute('x1', '0'); l.setAttribute('y1', '0'); l.setAttribute('x2', '0'); l.setAttribute('y2', '10'); l.setAttribute('stroke', '#000000'); l.setAttribute('stroke-width', '2');
                 p.appendChild(l); defs.appendChild(p);
             }
-            // Pattern 2: Quadretti/Griglia
             if (!document.getElementById('pat-grid')) {
                 let p = document.createElementNS(svgNamespace, "pattern");
                 p.setAttribute('id', 'pat-grid'); p.setAttribute('patternUnits', 'userSpaceOnUse'); p.setAttribute('width', '12'); p.setAttribute('height', '12');
-                let path = document.createElementNS(svgNamespace, "path");
-                path.setAttribute('d', 'M 12 0 L 0 0 0 12'); path.setAttribute('fill', 'none'); path.setAttribute('stroke', '#000000'); path.setAttribute('stroke-width', '1.5');
+                let path = document.createElementNS(svgNamespace, "path"); path.setAttribute('d', 'M 12 0 L 0 0 0 12'); path.setAttribute('fill', 'none'); path.setAttribute('stroke', '#000000'); path.setAttribute('stroke-width', '1.5');
                 p.appendChild(path); defs.appendChild(p);
             }
-            // Pattern 3: Puntinato
             if (!document.getElementById('pat-dots')) {
                 let p = document.createElementNS(svgNamespace, "pattern");
                 p.setAttribute('id', 'pat-dots'); p.setAttribute('patternUnits', 'userSpaceOnUse'); p.setAttribute('width', '10'); p.setAttribute('height', '10');
-                let c = document.createElementNS(svgNamespace, "circle");
-                c.setAttribute('cx', '5'); c.setAttribute('cy', '5'); c.setAttribute('r', '2'); c.setAttribute('fill', '#000000');
+                let c = document.createElementNS(svgNamespace, "circle"); c.setAttribute('cx', '5'); c.setAttribute('cy', '5'); c.setAttribute('r', '2'); c.setAttribute('fill', '#000000');
                 p.appendChild(c); defs.appendChild(p);
             }
-            // Pattern 4: Mattoni
             if (!document.getElementById('pat-bricks')) {
                 let p = document.createElementNS(svgNamespace, "pattern");
                 p.setAttribute('id', 'pat-bricks'); p.setAttribute('patternUnits', 'userSpaceOnUse'); p.setAttribute('width', '20'); p.setAttribute('height', '10');
-                let path = document.createElementNS(svgNamespace, "path");
-                path.setAttribute('d', 'M 0 0 L 20 0 M 0 5 L 20 5 M 10 0 L 10 5 M 0 5 L 0 10 M 20 5 L 20 10'); path.setAttribute('fill', 'none'); path.setAttribute('stroke', '#000000'); path.setAttribute('stroke-width', '1');
+                let path = document.createElementNS(svgNamespace, "path"); path.setAttribute('d', 'M 0 0 L 20 0 M 0 5 L 20 5 M 10 0 L 10 5 M 0 5 L 0 10 M 20 5 L 20 10'); path.setAttribute('fill', 'none'); path.setAttribute('stroke', '#000000'); path.setAttribute('stroke-width', '1');
                 p.appendChild(path); defs.appendChild(p);
             }
         }
-        map.on('layeradd', setTimeout(generaPatternSVG, 100));
+        map.on('layeradd', function() { setTimeout(generaPatternSVG, 100); });
 
         // --- 1. PATCH PER IL BUG DI LEAFLET-MEASURE ---
         L.Control.Measure.include({
@@ -402,9 +404,8 @@
                                 </div>
                                 <div class="layer-controls"><span style="font-size:10px;">Opacità:</span><input type="range" min="0" max="1" step="0.1" value="${item.opacity}" oninput="opacityVectorItem(${i}, ${j}, this.value)"></div>
                                 
-                                <!-- NUOVO SELETTORE RETINI INTEGRATI -->
                                 <div style="display:flex; align-items:center; gap:5px; margin-top:3px;">
-                                    <span style="font-size:10px; color:#555;">Riempimento:</span>
+                                    <span style="font-size:10px; color:#555;">Stile Riempimento:</span>
                                     <select class="select-pattern" onchange="changeVectorPattern(${i}, ${j}, this.value)">
                                         <option value="pieno" ${curPat==='pieno'?'selected':''}>Colore Pieno</option>
                                         <option value="linee" ${curPat==='linee'?'selected':''}>Retino Linee</option>
@@ -452,7 +453,6 @@
                 } else if (l.setStyle) {
                     l.setStyle({ color: item.color, weight: weight, opacity: borderOp, fillOpacity: fillOp, fillColor: item.color });
                     
-                    // Se la mappa è rendering SVG e l'utente ha scelto un retino, applichiamo l'ID SVG
                     if (l._path && item.fill !== false) {
                         if (patternType === 'linee') { l._path.setAttribute('fill', 'url(#pat-lines)'); document.getElementById('pat-lines').querySelector('line').setAttribute('stroke', item.color); }
                         else if (patternType === 'griglia') { l._path.setAttribute('fill', 'url(#pat-grid)'); document.getElementById('pat-grid').querySelector('path').setAttribute('stroke', item.color); }
@@ -536,6 +536,21 @@
                     const keys = await localforage.keys();
                     for (let k of keys) { if (k.startsWith('pptr_fisso_') || (!savedVersion && k.startsWith('zip_'))) await localforage.removeItem(k); }
                     await localforage.setItem('app_version', APP_VERSION);
+                }
+
+                let needsInstall = false;
+                if (PACCHETTO_DATI_PREDEFINITO.length > 0) {
+                    const firstLayerKey = 'pptr_fisso_' + PACCHETTO_DATI_PREDEFINITO[0].nome.replace(/\s+/g, '_');
+                    const checkFirst = await localforage.getItem(firstLayerKey); if (!checkFirst) needsInstall = true;
+                }
+
+                if (needsInstall && PACCHETTO_DATI_PREDEFINITO.length > 0) {
+                    for (let file of PACCHETTO_DATI_PREDEFINITO) {
+                        try {
+                            const response = await fetch(file.url);
+                            if (response.ok) { const buffer = await response.arrayBuffer(); const dbKey = 'pptr_fisso_' + file.nome.replace(/\s+/g, '_'); await elaboraZipDati(buffer, file.nome, dbKey, true, tempVectorLayers); }
+                        } catch (e) { }
+                    }
                 }
                 
                 const keys = await localforage.keys();
