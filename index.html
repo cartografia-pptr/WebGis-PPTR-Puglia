@@ -5,6 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>WebGis PPTR Puglia</title>
     
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
+    
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet-measure/3.1.0/leaflet-measure.css" />
     
@@ -214,6 +218,11 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Turf.js/6.5.0/turf.min.js"></script>
     
     <script>
+        // =====================================================================
+        // CONTROLLO VERSIONE: Cambia questo numero per aggiornare le app degli utenti!
+        const APP_VERSION = "1.1"; 
+        // =====================================================================
+
         const PACCHETTO_DATI_PREDEFINITO = [
             { url: './dati_pptr/6.1.1_GEOMORFOLOGICHE.zip', nome: '6.1.1 Geomorfologiche' },
             { url: './dati_pptr/6.1.2_IDROLOGICHE.zip', nome: '6.1.2 Idrologiche' },
@@ -370,7 +379,7 @@
                                 <button class="btn-order" onclick="toggleVectorCollapse(${i})">${v.expanded ? '▼' : '►'}</button>
                                 <button class="btn-order" onclick="moveVector(${i}, 1)" ${i === vectorLayers.length - 1 ? 'disabled' : ''}>▲</button>
                                 <button class="btn-order" onclick="moveVector(${i}, -1)" ${i === 0 ? 'disabled' : ''}>▼</button>
-                                <button class="btn-order btn-delete" onclick="eliminaDatoSalvato('${v.dbKey}', ${i})" title="Elimina Shapefile">🗑️</button>
+                                ${v.dbKey && v.dbKey.startsWith('pptr_fisso_') ? '' : `<button class="btn-order btn-delete" onclick="eliminaDatoSalvato('${v.dbKey}', ${i})" title="Elimina Shapefile">🗑️</button>`}
                             </div>
                         </div>
                         ${itemsHtml}
@@ -530,29 +539,47 @@
                 let tempVectorLayers = [];
                 let tempWmsLayers = [];
                 
-                const primoAvvioFatto = await localforage.getItem('installazione_pptr_completata');
+                // --- SISTEMA DI AGGIORNAMENTO AUTOMATICO ---
+                const savedVersion = await localforage.getItem('app_version');
                 
-                if (!primoAvvioFatto && PACCHETTO_DATI_PREDEFINITO.length > 0) {
+                if (savedVersion !== APP_VERSION) {
+                    document.getElementById('loadingDesc').innerText = "Aggiornamento in corso. Attendere...";
+                    const keys = await localforage.keys();
+                    for (let k of keys) {
+                        if (k.startsWith('pptr_fisso_') || (!savedVersion && k.startsWith('zip_'))) {
+                            await localforage.removeItem(k);
+                        }
+                    }
+                    await localforage.setItem('app_version', APP_VERSION);
+                }
+                
+                let needsInstall = false;
+                if (PACCHETTO_DATI_PREDEFINITO.length > 0) {
+                    const firstLayerKey = 'pptr_fisso_' + PACCHETTO_DATI_PREDEFINITO[0].nome.replace(/\s+/g, '_');
+                    const checkFirst = await localforage.getItem(firstLayerKey);
+                    if (!checkFirst) needsInstall = true;
+                }
+
+                if (needsInstall && PACCHETTO_DATI_PREDEFINITO.length > 0) {
                     for (let file of PACCHETTO_DATI_PREDEFINITO) {
                         try {
                             const response = await fetch(file.url);
                             if (response.ok) {
                                 const buffer = await response.arrayBuffer();
-                                const dbKey = 'zip_' + Date.now() + Math.random();
+                                const dbKey = 'pptr_fisso_' + file.nome.replace(/\s+/g, '_');
                                 await elaboraZipDati(buffer, file.nome, dbKey, true, tempVectorLayers);
                             }
-                        } catch (e) { }
+                        } catch (e) { console.warn("Livello saltato:", file.nome); }
                     }
-                    await localforage.setItem('installazione_pptr_completata', true);
                 }
 
                 const keys = await localforage.keys();
                 for (let key of keys) {
-                    if (key.startsWith('zip_')) {
+                    if (key.startsWith('zip_') || key.startsWith('pptr_fisso_')) {
                         const savedObj = await localforage.getItem(key);
                         let arrayBuffer, fileName;
                         if (savedObj && savedObj.data) { arrayBuffer = savedObj.data; fileName = savedObj.name; } 
-                        else { arrayBuffer = savedObj; fileName = key.replace('zip_', ''); }
+                        else { arrayBuffer = savedObj; fileName = key.replace('zip_', '').replace('pptr_fisso_', ''); }
                         
                         let giaPresente = tempVectorLayers.some(v => v.dbKey === key);
                         if (!giaPresente) { await elaboraZipDati(arrayBuffer, fileName, key, false, tempVectorLayers); }
