@@ -280,12 +280,12 @@
         const orto06 = L.tileLayer.wms('https://webapps.sit.puglia.it/arcgis/services/BaseMaps/Ortofoto2006/ImageServer/WMSServer', wmsOptions);
 
         // --- I DUE LAYER PMTILES ---
-        const igmLayer = pmtiles.leafletRasterLayer(new pmtiles.PMTiles('./dati_pptr/IGM_25k_Puglia.pmtiles'), {
+        const igmLayer = pmtiles.leafletRasterLayer(new pmtiles.PMTiles('https://pub-c033353f97014eaea6e433680b0aaba6.r2.dev/IGM_25k_Puglia.pmtiles'), {
             maxZoom: 25,
             attribution: '© IGM 25k Puglia'
         });
         
-        const ctrLayer = pmtiles.leafletRasterLayer(new pmtiles.PMTiles('./dati_pptr/PUGLIA_CTR_2006.pmtiles'), {
+        const ctrLayer = pmtiles.leafletRasterLayer(new pmtiles.PMTiles('https://pub-c033353f97014eaea6e433680b0aaba6.r2.dev/PUGLIA_CTR_2006.pmtiles'), {
             maxZoom: 25,
             attribution: '© CTR Puglia 2006'
         });
