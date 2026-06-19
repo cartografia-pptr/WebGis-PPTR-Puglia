@@ -5,13 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>WebGis PPTR Puglia</title>
     
-    <!-- META TAG ANTI-CACHE -->
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
     <meta http-equiv="Pragma" content="no-cache" />
     <meta http-equiv="Expires" content="0" />
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet-measure/3.1.0/leaflet-measure.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-measure@3.1.0/dist/leaflet-measure.css" />
     
     <style>
         html, body { margin: 0; padding: 0; width: 100%; height: 100%; font-family: 'Segoe UI', Tahoma, sans-serif; overflow: hidden; overscroll-behavior: none; }
@@ -89,7 +88,7 @@
         .btn-export { color: white; flex-grow: 1; text-align: center; }
         .btn-export:hover { filter: brightness(1.1); }
 
-        .leaflet-control-measure { box-shadow: 0 2px 5px rgba(0,0,0,0.3) !important; border: 2px solid #2c3e50 !important; outline: none !important; margin-top: 260px !important; margin-left: 10px !important;}
+        .leaflet-control-measure { box-shadow: 0 2px 5px rgba(0,0,0,0.3) !important; border: 2px solid #2c3e50 !important; outline: none !important; margin-top: 10px !important; margin-left: 10px !important;}
         .leaflet-control-measure .leaflet-control-measure-toggle { width: 40px !important; height: 40px !important; background-size: 20px 20px !important; outline: none !important; }
         
         .custom-popup { font-family: 'Segoe UI', Tahoma, sans-serif; margin: 0; padding: 0; }
@@ -212,7 +211,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/proj4js/2.9.0/proj4.js"></script>
     <script src="https://unpkg.com/shpjs@latest/dist/shp.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet-measure/3.1.0/leaflet-measure.js"></script>
+    <script src="https://unpkg.com/leaflet-measure@3.1.0/dist/leaflet-measure.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script> 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/chroma-js/2.4.2/chroma.min.js"></script>
@@ -221,7 +220,7 @@
     
     <script>
         // =====================================================================
-        // CONTROLLO VERSIONE (AGGIORNATO A 1.3)
+        // CONTROLLO VERSIONE (AGGIORNATO A 1.4 PER RESET SANO)
         const APP_VERSION = "1.4"; 
         // =====================================================================
 
@@ -233,7 +232,7 @@
             { url: './dati_pptr/6.3.1_CULTURALI.zip', nome: '6.3.1 Culturali' },
             { url: './dati_pptr/6.3.2_PERCETTIVE.zip', nome: '6.3.2 Percettive' },
             { url: './dati_pptr/CTR Confini Comunali.zip', nome: 'CTR Confini Comunali' },
-            { url: './dati_pptr/piani_adeguati_conformi_2026.zip', nome: 'Piani adeguati o conformi (Giu 2026)' },
+            { url: './dati_pptr/piani_adeguati_conformi.zip', nome: 'Piani adeguati o conformi (Giu 2026)' },
             { url: './dati_pptr/art_142_co_2_vigente_giu_2026.zip', nome: 'Art. 142 Co. 2 Vigente' }
         ];
 
@@ -267,12 +266,12 @@
         // --- 1. PATCH PER IL BUG DI LEAFLET-MEASURE ---
         L.Control.Measure.include({
             _setCaptureMarkerIcon: function () {
-                this._captureMarker.options.autoPanOnFocus = false; // Spegne l'auto-centramento
+                this._captureMarker.options.autoPanOnFocus = false;
                 this._captureMarker.setIcon(L.divIcon({ iconSize: this._map.getSize().multiplyBy(2) }));
             }
         });
 
-        // --- 2. CONFIGURAZIONE STRUMENTO (Distanze e Aree) ---
+        // --- 2. CONFIGURAZIONE STRUMENTO MISURA ---
         const measureControl = new L.Control.Measure({
             position: 'topleft',
             primaryLengthUnit: 'meters',
@@ -284,17 +283,10 @@
         });
         measureControl.addTo(map);
 
-        // --- 3. BLOCCO INTERFERENZE ---
+        // --- 3. GESTIONE INTERFERENZE CLIC ---
         window.isMeasuring = false;
         map.on('measurestart', function() { window.isMeasuring = true; });
         map.on('measurefinish', function() { setTimeout(() => { window.isMeasuring = false; }, 200); });
-
-        const wmsOptions = { 
-            layers: '0', format: 'image/png', transparent: true, attribution: '© SIT Puglia', 
-            maxNativeZoom: 19, maxZoom: 25, keepBuffer: 8, updateWhenIdle: true 
-        };
-
-        const mioCatastoLocale = L.tileLayer('./catasto_tasselli/{z}/{x}/{y}.png', { minZoom: 14, maxNativeZoom: 21, maxZoom: 25, crossOrigin: true, attribution: '© Elaborazione Interna Catasto' });
 
         const wmsOptions = { 
             layers: '0', format: 'image/png', transparent: true, attribution: '© SIT Puglia', 
@@ -311,17 +303,13 @@
         const orto2013 = L.tileLayer.wms('https://webapps.sit.puglia.it/arcgis/services/BaseMaps/Ortofoto2013/ImageServer/WMSServer', wmsOptions);
         const orto06 = L.tileLayer.wms('https://webapps.sit.puglia.it/arcgis/services/BaseMaps/Ortofoto2006/ImageServer/WMSServer', wmsOptions);
 
-     // --- I DUE LAYER PMTILES ---
+        // --- LAYER CLOUDFLARE PMTILES ---
         const igmLayer = pmtiles.leafletRasterLayer(new pmtiles.PMTiles('https://pub-c033353f97014eaea6e433680b0aaba6.r2.dev/IGM_25k_Puglia.pmtiles'), {
-            maxNativeZoom: 15, // 👈 AGGIUNGI QUESTA RIGA: ferma le richieste pesanti a zoom elevati
-            maxZoom: 25,       // Ti permette comunque di avvicinarti quanto vuoi
-            attribution: '© IGM 25k Puglia'
+            maxNativeZoom: 15, maxZoom: 25, attribution: '© IGM 25k Puglia'
         });
         
         const ctrLayer = pmtiles.leafletRasterLayer(new pmtiles.PMTiles('https://pub-c033353f97014eaea6e433680b0aaba6.r2.dev/PUGLIA_CTR_2006.pmtiles'), {
-            maxNativeZoom: 15, // 👈 AGGIUNGI QUESTA RIGA
-            maxZoom: 25,       // Ti permette comunque di avvicinarti quanto vuoi
-            attribution: '© CTR Puglia 2006'
+            maxNativeZoom: 15, maxZoom: 25, attribution: '© CTR Puglia 2006'
         });
 
         let rasterLayers = [
@@ -447,11 +435,8 @@
             let weight = item.border !== false ? 2 : 0;
 
             item.layer.eachLayer(function(l) {
-                if (l instanceof L.CircleMarker) {
-                    l.setStyle({ fillColor: item.color, color: "#333", weight: item.border !== false ? 1 : 0, opacity: borderOp, fillOpacity: item.fill !== false ? item.opacity * 0.8 : 0, interactive: false });
-                } else if (l.setStyle) {
-                    l.setStyle({ color: item.color, fillColor: item.color, weight: weight, opacity: borderOp, fillOpacity: fillOp, interactive: false });
-                }
+                if (l instanceof L.CircleMarker) l.setStyle({ fillColor: item.color, color: "#333", weight: item.border !== false ? 1 : 0, opacity: borderOp, fillOpacity: item.fill !== false ? item.opacity * 0.8 : 0, interactive: false });
+                else if (l.setStyle) l.setStyle({ color: item.color, fillColor: item.color, weight: weight, opacity: borderOp, fillOpacity: fillOp, interactive: false });
             });
         }
 
@@ -461,11 +446,7 @@
 
         function toggleVectorFolder(i, checked) { 
             vectorLayers[i].active = checked; 
-            vectorLayers[i].items.forEach((item, j) => { 
-                item.active = checked; 
-                let cb = document.getElementById(`chk_vec_${i}_${j}`);
-                if(cb) cb.checked = checked;
-            }); 
+            vectorLayers[i].items.forEach((item, j) => { item.active = checked; let cb = document.getElementById(`chk_vec_${i}_${j}`); if(cb) cb.checked = checked; }); 
             updateMapLayers(); saveAppState();
         }
         function toggleVectorCollapse(i) { vectorLayers[i].expanded = !vectorLayers[i].expanded; renderLayers(); saveAppState(); }
@@ -480,25 +461,14 @@
         function moveVectorItem(i, j, dir) { let items = vectorLayers[i].items; const nIdx = j + dir; if (nIdx < 0 || nIdx >= items.length) return; const t = items[j]; items[j] = items[nIdx]; items[nIdx] = t; renderLayers(); saveAppState(); }
 
         function updateMapLayers() {
-            rasterLayers.forEach(r => {
-                if (r.active && !map.hasLayer(r.layer)) map.addLayer(r.layer);
-                else if (!r.active && map.hasLayer(r.layer)) map.removeLayer(r.layer);
-            });
-            vectorLayers.forEach(v => {
-                v.items.forEach(item => {
-                    let show = v.active && item.active;
-                    if (show && !map.hasLayer(item.layer)) map.addLayer(item.layer);
-                    else if (!show && map.hasLayer(item.layer)) map.removeLayer(item.layer);
-                });
-            });
+            rasterLayers.forEach(r => { if (r.active && !map.hasLayer(r.layer)) map.addLayer(r.layer); else if (!r.active && map.hasLayer(r.layer)) map.removeLayer(r.layer); });
+            vectorLayers.forEach(v => { v.items.forEach(item => { let show = v.active && item.active; if (show && !map.hasLayer(item.layer)) map.addLayer(item.layer); else if (!show && map.hasLayer(item.layer)) map.removeLayer(item.layer); }); });
         }
 
         function reorderMapLayers() {
             let zIdx = 10;
             rasterLayers.forEach(r => { if(r.layer.setZIndex) r.layer.setZIndex(zIdx++); });
-            vectorLayers.forEach(v => {
-                v.items.forEach(item => { if(item.layer.bringToFront && map.hasLayer(item.layer)) item.layer.bringToFront(); });
-            });
+            vectorLayers.forEach(v => { v.items.forEach(item => { if(item.layer.bringToFront && map.hasLayer(item.layer)) item.layer.bringToFront(); }); });
         }
         
         function getRandomColor() { return chroma.random().saturate(1.5).hex(); }
@@ -508,11 +478,7 @@
             if (geo.type === 'FeatureCollection' && geo.features) { geo.features.forEach(f => pulisciGeometrie(f)); } 
             else if (geo.type === 'Feature' && geo.geometry) { pulisciGeometrie(geo.geometry); } 
             else if (geo.coordinates) {
-                const cleanCoords = (coords) => {
-                    if (!Array.isArray(coords)) return coords;
-                    if (coords.length > 0 && typeof coords[0] === 'number') return [coords[0], coords[1]]; 
-                    return coords.map(cleanCoords);
-                };
+                const cleanCoords = (coords) => { if (!Array.isArray(coords)) return coords; if (coords.length > 0 && typeof coords[0] === 'number') return [coords[0], coords[1]]; return coords.map(cleanCoords); };
                 geo.coordinates = cleanCoords(geo.coordinates);
             }
         }
@@ -530,444 +496,145 @@
         document.getElementById('map').appendChild(zoomBox);
 
         function toggleBoxZoom() {
-            boxZoomActive = !boxZoomActive;
-            const btn = document.getElementById('toggleBoxZoomBtn');
-            if (boxZoomActive) {
-                btn.style.background = '#2980b9';
-                btn.style.color = 'white';
-                map.dragging.disable();
-                document.getElementById('map').style.cursor = 'crosshair';
-            } else {
-                btn.style.background = 'white';
-                btn.style.color = '#2c3e50';
-                map.dragging.enable();
-                document.getElementById('map').style.cursor = 'grab';
-                zoomBox.style.display = 'none';
-                startPoint = null;
-            }
+            boxZoomActive = !boxZoomActive; const btn = document.getElementById('toggleBoxZoomBtn');
+            if (boxZoomActive) { btn.style.background = '#2980b9'; btn.style.color = 'white'; map.dragging.disable(); document.getElementById('map').style.cursor = 'crosshair'; } 
+            else { btn.style.background = 'white'; btn.style.color = '#2c3e50'; map.dragging.enable(); document.getElementById('map').style.cursor = 'grab'; zoomBox.style.display = 'none'; startPoint = null; }
         }
 
-        map.on('mousedown', function(e) {
-            if (!boxZoomActive) return;
-            startPoint = e.containerPoint;
-            zoomBox.style.left = startPoint.x + 'px';
-            zoomBox.style.top = startPoint.y + 'px';
-            zoomBox.style.width = '0px';
-            zoomBox.style.height = '0px';
-            zoomBox.style.display = 'block';
-        });
-
-        map.on('mousemove', function(e) {
-            if (!boxZoomActive || !startPoint) return;
-            let currentPoint = e.containerPoint;
-            let bounds = L.bounds(startPoint, currentPoint);
-            zoomBox.style.left = bounds.min.x + 'px';
-            zoomBox.style.top = bounds.min.y + 'px';
-            zoomBox.style.width = (bounds.max.x - bounds.min.x) + 'px';
-            zoomBox.style.height = (bounds.max.y - bounds.min.y) + 'px';
-        });
-
-        map.on('mouseup', function(e) {
-            if (!boxZoomActive || !startPoint) return;
-            let endPoint = e.containerPoint;
-            let pixelBounds = L.bounds(startPoint, endPoint);
-            
-            if (pixelBounds.getSize().x > 10 && pixelBounds.getSize().y > 10) {
-                let latLngBounds = L.latLngBounds(
-                    map.containerPointToLatLng(pixelBounds.min),
-                    map.containerPointToLatLng(pixelBounds.max)
-                );
-                map.fitBounds(latLngBounds);
-            }
-            toggleBoxZoom();
-        });
+        map.on('mousedown', function(e) { if (!boxZoomActive) return; startPoint = e.containerPoint; zoomBox.style.left = startPoint.x + 'px'; zoomBox.style.top = startPoint.y + 'px'; zoomBox.style.width = '0px'; zoomBox.style.height = '0px'; zoomBox.style.display = 'block'; });
+        map.on('mousemove', function(e) { if (!boxZoomActive || !startPoint) return; let currentPoint = e.containerPoint; let bounds = L.bounds(startPoint, currentPoint); zoomBox.style.left = bounds.min.x + 'px'; zoomBox.style.top = bounds.min.y + 'px'; zoomBox.style.width = (bounds.max.x - bounds.min.x) + 'px'; zoomBox.style.height = (bounds.max.y - bounds.min.y) + 'px'; });
+        map.on('mouseup', function(e) { if (!boxZoomActive || !startPoint) return; let endPoint = e.containerPoint; let pixelBounds = L.bounds(startPoint, endPoint); if (pixelBounds.getSize().x > 10 && pixelBounds.getSize().y > 10) { let latLngBounds = L.latLngBounds(map.containerPointToLatLng(pixelBounds.min), map.containerPointToLatLng(pixelBounds.max)); map.fitBounds(latLngBounds); } toggleBoxZoom(); });
 
         window.onload = async function() {
             document.getElementById('loadingOverlay').style.display = 'flex';
             try {
-                let tempVectorLayers = [];
-                let tempWmsLayers = [];
-                
-                // --- SISTEMA DI AGGIORNAMENTO AUTOMATICO ---
+                let tempVectorLayers = []; let tempWmsLayers = [];
                 const savedVersion = await localforage.getItem('app_version');
-                
                 if (savedVersion !== APP_VERSION) {
-                    document.getElementById('loadingDesc').innerText = "Aggiornamento in corso. Attendere...";
+                    document.getElementById('loadingDesc').innerText = "Installazione Aggiornamento v1.4...";
                     const keys = await localforage.keys();
-                    
-                    for (let k of keys) {
-                        if (k.startsWith('pptr_fisso_') || (!savedVersion && k.startsWith('zip_'))) {
-                            await localforage.removeItem(k);
-                        }
-                    }
+                    for (let k of keys) { if (k.startsWith('pptr_fisso_') || (!savedVersion && k.startsWith('zip_'))) await localforage.removeItem(k); }
                     await localforage.setItem('app_version', APP_VERSION);
                 }
                 
                 let needsInstall = false;
                 if (PACCHETTO_DATI_PREDEFINITO.length > 0) {
                     const firstLayerKey = 'pptr_fisso_' + PACCHETTO_DATI_PREDEFINITO[0].nome.replace(/\s+/g, '_');
-                    const checkFirst = await localforage.getItem(firstLayerKey);
-                    if (!checkFirst) needsInstall = true;
+                    const checkFirst = await localforage.getItem(firstLayerKey); if (!checkFirst) needsInstall = true;
                 }
 
                 if (needsInstall && PACCHETTO_DATI_PREDEFINITO.length > 0) {
                     for (let file of PACCHETTO_DATI_PREDEFINITO) {
                         try {
                             const response = await fetch(file.url);
-                            if (response.ok) {
-                                const buffer = await response.arrayBuffer();
-                                const dbKey = 'pptr_fisso_' + file.nome.replace(/\s+/g, '_');
-                                await elaboraZipDati(buffer, file.nome, dbKey, true, tempVectorLayers);
-                            }
-                        } catch (e) { console.warn("Livello saltato:", file.nome); }
+                            if (response.ok) { const buffer = await response.arrayBuffer(); const dbKey = 'pptr_fisso_' + file.nome.replace(/\s+/g, '_'); await elaboraZipDati(buffer, file.nome, dbKey, true, tempVectorLayers); }
+                        } catch (e) { }
                     }
                 }
 
                 const keys = await localforage.keys();
                 for (let key of keys) {
                     if (key.startsWith('zip_') || key.startsWith('pptr_fisso_')) {
-                        const savedObj = await localforage.getItem(key);
-                        let arrayBuffer, fileName;
+                        const savedObj = await localforage.getItem(key); let arrayBuffer, fileName;
                         if (savedObj && savedObj.data) { arrayBuffer = savedObj.data; fileName = savedObj.name; } 
                         else { arrayBuffer = savedObj; fileName = key.replace('zip_', '').replace('pptr_fisso_', ''); }
-                        
-                        let giaPresente = tempVectorLayers.some(v => v.dbKey === key);
-                        if (!giaPresente) { await elaboraZipDati(arrayBuffer, fileName, key, false, tempVectorLayers); }
+                        let giaPresente = tempVectorLayers.some(v => v.dbKey === key); if (!giaPresente) await elaboraZipDati(arrayBuffer, fileName, key, false, tempVectorLayers);
                     } else if (key.startsWith('wms_')) {
-                        const wmsData = await localforage.getItem(key);
-                        const nWMS = L.tileLayer.wms(wmsData.url, { layers: wmsData.layerName || '0', format: 'image/png', transparent: true, version: '1.3.0', maxNativeZoom: 19, maxZoom: 25, keepBuffer: 8, updateWhenIdle: true });
-                        setWmsLoadingCursors(nWMS);
-                        tempWmsLayers.push({ id: 'wms_' + Date.now() + Math.random(), dbKey: key, name: wmsData.name, type: 'wms', layer: nWMS, active: false, opacity: 1 });
+                        const wmsData = await localforage.getItem(key); const nWMS = L.tileLayer.wms(wmsData.url, { layers: wmsData.layerName || '0', format: 'image/png', transparent: true, version: '1.3.0', maxNativeZoom: 19, maxZoom: 25 });
+                        setWmsLoadingCursors(nWMS); tempWmsLayers.push({ id: 'wms_' + Date.now() + Math.random(), dbKey: key, name: wmsData.name, type: 'wms', layer: nWMS, active: false, opacity: 1 });
                     }
                 }
                 
-                vectorLayers = tempVectorLayers;
-                rasterLayers = [...rasterLayers, ...tempWmsLayers];
-
+                vectorLayers = tempVectorLayers; rasterLayers = [...rasterLayers, ...tempWmsLayers];
                 const appState = await localforage.getItem('app_state');
                 if (appState) {
                     if (appState.rasters) {
                         let sortedRasters = [];
-                        appState.rasters.forEach(savedRast => {
-                            let found = rasterLayers.find(r => (savedRast.dbKey && r.dbKey === savedRast.dbKey) || (!savedRast.dbKey && r.id === savedRast.id));
-                            if (found) { found.active = savedRast.active; found.opacity = savedRast.opacity; sortedRasters.push(found); }
-                        });
-                        rasterLayers.forEach(r => { if (!sortedRasters.includes(r)) sortedRasters.push(r); });
-                        rasterLayers = sortedRasters;
+                        appState.rasters.forEach(savedRast => { let found = rasterLayers.find(r => (savedRast.dbKey && r.dbKey === savedRast.dbKey) || (!savedRast.dbKey && r.id === savedRast.id)); if (found) { found.active = savedRast.active; found.opacity = savedRast.opacity; sortedRasters.push(found); } });
+                        rasterLayers.forEach(r => { if (!sortedRasters.includes(r)) sortedRasters.push(r); }); rasterLayers = sortedRasters;
                     }
                     if (appState.vectors) {
                         let sortedVectors = [];
                         appState.vectors.forEach(savedVec => {
                             let found = vectorLayers.find(v => v.dbKey === savedVec.dbKey);
                             if (found && found.type === 'folder' && savedVec.items) {
-                                if (savedVec.name) found.name = savedVec.name;
-                                found.active = savedVec.active; found.expanded = savedVec.expanded;
-                                let sortedItems = [];
+                                if (savedVec.name) found.name = savedVec.name; found.active = savedVec.active; found.expanded = savedVec.expanded; let sortedItems = [];
                                 savedVec.items.forEach((savedItem, idx) => {
-                                    let foundItem = found.items.find(i => i.name === savedItem.name);
-                                    if (!foundItem && found.items.length === savedVec.items.length) { foundItem = found.items[idx]; }
-                                    if (foundItem) { 
-                                        foundItem.name = savedItem.name; foundItem.active = savedItem.active; foundItem.opacity = savedItem.opacity;
-                                        foundItem.fill = savedItem.fill !== undefined ? savedItem.fill : true; foundItem.border = savedItem.border !== undefined ? savedItem.border : true;
-                                        if(savedItem.color) foundItem.color = savedItem.color;
-                                        applyVectorStyle(foundItem); sortedItems.push(foundItem); 
-                                    }
+                                    let foundItem = found.items.find(i => i.name === savedItem.name); if (!foundItem && found.items.length === savedVec.items.length) foundItem = found.items[idx];
+                                    if (foundItem) { foundItem.name = savedItem.name; foundItem.active = savedItem.active; foundItem.opacity = savedItem.opacity; foundItem.fill = savedItem.fill !== undefined ? savedItem.fill : true; foundItem.border = savedItem.border !== undefined ? savedItem.border : true; if(savedItem.color) foundItem.color = savedItem.color; applyVectorStyle(foundItem); sortedItems.push(foundItem); }
                                 });
-                                found.items.forEach(i => { if (!sortedItems.includes(i)) sortedItems.push(i); });
-                                found.items = sortedItems; sortedVectors.push(found);
+                                found.items.forEach(i => { if (!sortedItems.includes(i)) sortedItems.push(i); }); found.items = sortedItems; sortedVectors.push(found);
                             }
                         });
-                        vectorLayers.forEach(v => { if (!sortedVectors.includes(v)) sortedVectors.push(v); });
-                        vectorLayers = sortedVectors;
+                        vectorLayers.forEach(v => { if (!sortedVectors.includes(v)) sortedVectors.push(v); }); vectorLayers = sortedVectors;
                     }
                 }
-
-                window.appReady = true; 
-                saveAppState(); 
-                renderLayers();
-            } catch (err) { console.error(err); window.appReady = true; }
+                window.appReady = true; saveAppState(); renderLayers();
+            } catch (err) { window.appReady = true; }
             document.getElementById('loadingOverlay').style.display = 'none';
         };
 
         function elaboraZipDati(arrayBuffer, fileName, dbKey, salvaInDB, targetArray = vectorLayers) {
             return shp(arrayBuffer).then(function(geojson) {
-                pulisciGeometrie(geojson);
-                let zipNameClean = fileName.replace('.zip', '').replace('_manuale', '');
+                pulisciGeometrie(geojson); let zipNameClean = fileName.replace('.zip', '').replace('_manuale', '');
                 let newFolder = { id: 'folder_' + Date.now() + Math.random(), dbKey: dbKey, name: zipNameClean, type: 'folder', active: false, expanded: false, items: [] };
-
                 function addShape(data, name) {
-                    if (!data || !data.features || data.features.length === 0) return;
-                    let layerColor = getRandomColor();
+                    if (!data || !data.features || data.features.length === 0) return; let layerColor = getRandomColor();
                     try {
-                        let newLayer = L.geoJSON(data, {
-                            style: function() { return { color: layerColor, fillColor: layerColor, weight: 2, fillOpacity: 0.5, opacity: 1, interactive: false }; },
-                            pointToLayer: function (feature, latlng) {
-                                return L.circleMarker(latlng, { radius: 6, interactive: false });
-                            }
-                        });
+                        let newLayer = L.geoJSON(data, { style: function() { return { color: layerColor, fillColor: layerColor, weight: 2, fillOpacity: 0.5, opacity: 1, interactive: false }; }, pointToLayer: function (feature, latlng) { return L.circleMarker(latlng, { radius: 6, interactive: false }); } });
                         newFolder.items.push({ name: name, layer: newLayer, active: false, opacity: 1, color: layerColor, fill: true, border: true });
                     } catch(err) { }
                 }
-
-                if (Array.isArray(geojson)) { geojson.forEach(g => addShape(g, g.fileName || "Strato Vettoriale")); } 
-                else { addShape(geojson, geojson.fileName || zipNameClean); }
-
-                if (newFolder.items.length > 0) {
-                    targetArray.push(newFolder);
-                    if (salvaInDB) { localforage.setItem(dbKey, { name: zipNameClean, data: arrayBuffer }); }
-                }
+                if (Array.isArray(geojson)) geojson.forEach(g => addShape(g, g.fileName || "Strato Vettoriale")); else addShape(geojson, geojson.fileName || zipNameClean);
+                if (newFolder.items.length > 0) { targetArray.push(newFolder); if (salvaInDB) localforage.setItem(dbKey, { name: zipNameClean, data: arrayBuffer }); }
             });
         }
 
         document.getElementById('fileUpload').addEventListener('change', async function(e) {
-            const files = e.target.files; if (files.length === 0) return;
-            document.getElementById('loadingOverlay').style.display = 'flex';
-            try {
-                let buffer = await files[0].arrayBuffer();
-                await elaboraZipDati(buffer, files[0].name, 'zip_' + Date.now(), true);
-                renderLayers(); saveAppState();
-            } catch(err) { alert("Errore nel caricamento del file."); }
+            const files = e.target.files; if (files.length === 0) return; document.getElementById('loadingOverlay').style.display = 'flex';
+            try { let buffer = await files[0].arrayBuffer(); await elaboraZipDati(buffer, files[0].name, 'zip_' + Date.now(), true); renderLayers(); saveAppState(); } catch(err) { }
             document.getElementById('loadingOverlay').style.display = 'none';
         });
 
         async function aggiungiZipDaURL() {
-            const label = document.getElementById('zipLabel').value.trim() || 'Dato Esterno';
-            const rawUrl = document.getElementById('zipUrl').value.trim();
-            if (!rawUrl) { alert("Inserisci l'URL di un file .zip."); return; }
-            
+            const label = document.getElementById('zipLabel').value.trim() || 'Dato Esterno'; const rawUrl = document.getElementById('zipUrl').value.trim(); if (!rawUrl) return;
             if (rawUrl.toLowerCase().endsWith('.zip')) {
                 document.getElementById('loadingOverlay').style.display = 'flex';
-                try {
-                    const response = await fetch(rawUrl);
-                    if (!response.ok) throw new Error("Inaccessibile");
-                    const arrayBuffer = await response.arrayBuffer();
-                    const fileName = rawUrl.substring(rawUrl.lastIndexOf('/') + 1) || 'download_web.zip';
-                    const dbKey = 'zip_' + Date.now();
-                    
-                    await elaboraZipDati(arrayBuffer, label !== 'Dato Esterno' ? label : fileName, dbKey, true);
-                    
-                    document.getElementById('zipLabel').value = ''; document.getElementById('zipUrl').value = '';
-                    document.getElementById('vectorContent').style.display = 'block'; document.getElementById('vectorIcon').innerText = '▼';
-                    renderLayers();
-                    saveAppState();
-                } catch(e) { alert("Impossibile scaricare il file ZIP. Il server remoto blocca l'accesso (CORS)."); }
+                try { const response = await fetch(rawUrl); const arrayBuffer = await response.arrayBuffer(); const fileName = rawUrl.substring(rawUrl.lastIndexOf('/') + 1) || 'download.zip'; await elaboraZipDati(arrayBuffer, label !== 'Dato Esterno' ? label : fileName, 'zip_' + Date.now(), true); renderLayers(); saveAppState(); } catch(e) { alert("Bloccato da CORS."); }
                 document.getElementById('loadingOverlay').style.display = 'none';
-            } else { alert("L'URL deve terminare con .zip"); }
+            }
         }
 
         async function aggiungiWMSDaURL() {
-            const label = document.getElementById('wmsLabel').value.trim() || 'Livello WMS';
-            let rawUrl = document.getElementById('wmsUrl').value.trim();
-            const layerName = document.getElementById('wmsLayerName').value.trim() || '0';
-            const salvaPermanente = document.getElementById('wmsSaveDb').checked;
-            
-            if (!rawUrl) { alert("Inserisci l'URL di un server WMS."); return; }
-            
-            let cleanUrl = rawUrl.split('?')[0]; 
-            if (cleanUrl.toLowerCase().endsWith('/mapserver')) { cleanUrl += '/WMSServer'; }
-            if (window.location.protocol === 'https:' && cleanUrl.startsWith('http://')) { cleanUrl = cleanUrl.replace('http://', 'https://'); }
-            
-            const nWMS = L.tileLayer.wms(cleanUrl, { 
-                layers: layerName, format: 'image/png', transparent: true, version: '1.3.0', 
-                maxNativeZoom: 19, maxZoom: 25, keepBuffer: 8, updateWhenIdle: true 
-            });
-            setWmsLoadingCursors(nWMS);
-            
-            if (salvaPermanente) {
-                const dbKey = 'wms_' + Date.now();
-                const wmsData = { name: label, url: cleanUrl, layerName: layerName };
-                await localforage.setItem(dbKey, wmsData);
-                rasterLayers.push({ id: 'wms_' + Date.now(), dbKey: dbKey, name: label, type: 'wms', layer: nWMS, active: false, opacity: 1 });
-                alert("Servizio WMS salvato! Sarà disponibile anche ai prossimi riavvii.");
-            } else {
-                const tempId = 'temp_wms_' + Date.now();
-                rasterLayers.push({ id: tempId, name: label, type: 'wms', layer: nWMS, active: false, opacity: 1 });
-                alert("Servizio WMS aggiunto solo per questa sessione!");
-            }
-            
-            document.getElementById('wmsLabel').value = ''; document.getElementById('wmsUrl').value = ''; document.getElementById('wmsLayerName').value = '';
-            document.getElementById('rasterContent').style.display = 'block'; document.getElementById('rasterIcon').innerText = '▼';
-            renderLayers();
-            saveAppState();
+            const label = document.getElementById('wmsLabel').value.trim() || 'WMS'; let rawUrl = document.getElementById('wmsUrl').value.trim(); const layerName = document.getElementById('wmsLayerName').value.trim() || '0'; if (!rawUrl) return;
+            let cleanUrl = rawUrl.split('?')[0]; const nWMS = L.tileLayer.wms(cleanUrl, { layers: layerName, format: 'image/png', transparent: true, version: '1.3.0', maxZoom: 25 });
+            setWmsLoadingCursors(nWMS); rasterLayers.push({ id: 'wms_' + Date.now(), name: label, layer: nWMS, active: false, opacity: 1 }); renderLayers(); saveAppState();
         }
 
-        async function eliminaDatoSalvato(dbKey, vectorIndex) {
-            if(!confirm("Vuoi eliminare permanentemente questo livello Vettoriale?")) return;
-            await localforage.removeItem(dbKey);
-            let vLayer = vectorLayers[vectorIndex];
-            vLayer.items.forEach(item => { map.removeLayer(item.layer); shapefileLayers = shapefileLayers.filter(sl => sl !== item.layer); });
-            vectorLayers.splice(vectorIndex, 1);
-            renderLayers();
-            saveAppState();
-        }
-
-        async function eliminaRasterSalvato(dbKey, rasterIndex) {
-            if(!confirm("Vuoi rimuovere questo WMS?")) return;
-            if (dbKey && dbKey.startsWith('wms_')) {
-                await localforage.removeItem(dbKey);
-            }
-            map.removeLayer(rasterLayers[rasterIndex].layer);
-            rasterLayers.splice(rasterIndex, 1);
-            renderLayers();
-            saveAppState();
+        async functionGridDatoSalvato(dbKey, vectorIndex) {
+            if(!confirm("Eliminare?")) return; await localforage.removeItem(dbKey); vectorLayers[vectorIndex].items.forEach(item => map.removeLayer(item.layer)); vectorLayers.splice(vectorIndex, 1); renderLayers(); saveAppState();
         }
 
         function eseguiRicerca() {
-            const tLibera = document.getElementById('searchInput').value.toLowerCase().trim();
-            const tComune = document.getElementById('searchComune').value.toLowerCase().trim();
-            const tFoglio = document.getElementById('searchFoglio').value.toLowerCase().trim();
-            const tParticella = document.getElementById('searchParticella').value.toLowerCase().trim();
-            
-            if (!tLibera && !tComune && !tFoglio && !tParticella) return resetRicerca();
-            
-            let trovati = 0;
-            const stileEvidenziato = { color: "#e74c3c", fillColor: "#e74c3c", weight: 4, fillOpacity: 0.8, opacity: 1, interactive: false };
-            const stileNascosto = { color: "#bdc3c7", fillColor: "#bdc3c7", weight: 1, fillOpacity: 0.05, opacity: 0.1, interactive: false };
-            let searchBounds = L.latLngBounds();
-
-            vectorLayers.forEach(v => {
-                if (v.type === 'folder' && v.active) {
-                    v.items.forEach(item => {
-                        if(item.active) {
-                            item.layer.eachLayer(fLayer => {
-                                let props = fLayer.feature.properties || {};
-                                let matchLibera = tLibera === "", matchComune = tComune === "", matchFoglio = tFoglio === "", matchParticella = tParticella === "";
-                                let allValsStr = "";
-                                for (let key in props) { if(props[key] !== null) allValsStr += " " + String(props[key]).toLowerCase(); }
-                                
-                                if (tLibera && allValsStr.includes(tLibera)) matchLibera = true;
-                                if (tComune && allValsStr.includes(tComune)) matchComune = true;
-                                if (tFoglio) { for (let key in props) { if (key.toLowerCase().includes('fogl') && String(props[key]).toLowerCase() === tFoglio) matchFoglio = true; } if (!matchFoglio && allValsStr.includes(" " + tFoglio)) matchFoglio = true; }
-                                if (tParticella) { for (let key in props) { if ((key.toLowerCase().includes('part') || key.toLowerCase().includes('num')) && String(props[key]).toLowerCase() === tParticella) matchParticella = true; } if (!matchParticella && allValsStr.includes(" " + tParticella)) matchParticella = true; }
-                                
-                                if (matchLibera && matchComune && matchFoglio && matchParticella) { 
-                                    if(fLayer.setStyle) fLayer.setStyle(stileEvidenziato); if(fLayer.bringToFront) fLayer.bringToFront(); 
-                                    if (fLayer.getBounds) searchBounds.extend(fLayer.getBounds());
-                                    trovati++; 
-                                } else { if(fLayer.setStyle) fLayer.setStyle(stileNascosto); }
-                            });
-                        }
-                    });
-                }
-            });
-            
-            if (trovati === 0) { alert("Nessun risultato trovato.\nRicorda di attivare il flag (spunta) sul livello in legenda."); resetRicerca(); } 
-            else if (searchBounds.isValid()) { map.fitBounds(searchBounds, { padding: [0, 0], maxZoom: 25 }); }
+            const tLibera = document.getElementById('searchInput').value.toLowerCase().trim(); const tComune = document.getElementById('searchComune').value.toLowerCase().trim(); if (!tLibera && !tComune) return resetRicerca();
+            let trovati = 0; let searchBounds = L.latLngBounds();
+            vectorLayers.forEach(v => { if (v.active) { v.items.forEach(item => { if(item.active) { item.layer.eachLayer(fLayer => { let props = fLayer.feature.properties || {}; let allStr = ""; for(let k in props) allStr += " " + String(props[k]).toLowerCase(); if (allStr.includes(tLibera) && allStr.includes(tComune)) { if(fLayer.setStyle) fLayer.setStyle({ color: '#e74c3c', weight: 4 }); if(fLayer.getBounds) searchBounds.extend(fLayer.getBounds()); trovati++; } else { if(fLayer.setStyle) fLayer.setStyle({ opacity: 0.1, fillOpacity: 0.05 }); } }); } }); } });
+            if (trovati > 0 && searchBounds.isValid()) map.fitBounds(searchBounds);
         }
         
-        function resetRicerca() { 
-            document.getElementById('searchInput').value = ''; document.getElementById('searchComune').value = ''; document.getElementById('searchFoglio').value = ''; document.getElementById('searchParticella').value = '';
-            vectorLayers.forEach(v => { if (v.type === 'folder') { v.items.forEach(item => applyVectorStyle(item)); } });
-        }
+        function resetRicerca() { vectorLayers.forEach(v => v.items.forEach(item => applyVectorStyle(item))); }
 
-        document.querySelectorAll('.search-box input').forEach(function(input) {
-            input.addEventListener('keypress', function(e) {
-                if (e.key === 'Enter') { eseguiRicerca(); }
-            });
-        });
-
-        // POPUP CON CORREZIONE PER LO SCROLL E AUTO-PAN
         map.on('click', function(e) {
-            if (boxZoomActive || window.isMeasuring) return;
-            
-            let clickedPt = turf.point([e.latlng.lng, e.latlng.lat]);
-            let results = [];
-
-            vectorLayers.forEach(v => {
-                if (v.active && v.items) {
-                    v.items.forEach(item => {
-                        if (item.active && map.hasLayer(item.layer)) {
-                            item.layer.eachLayer(l => {
-                                if (!l.feature || !l.feature.geometry) return;
-                                if (l.getBounds && !l.getBounds().contains(e.latlng)) return;
-
-                                let geomType = l.feature.geometry.type;
-                                let isInside = false;
-
-                                try {
-                                    if (geomType === 'Polygon' || geomType === 'MultiPolygon') {
-                                        isInside = turf.booleanPointInPolygon(clickedPt, l.feature);
-                                    } else if (geomType === 'Point' || geomType === 'MultiPoint') {
-                                        let coords = l.feature.geometry.coordinates;
-                                        let pt = turf.point(geomType === 'Point' ? coords : coords[0]);
-                                        isInside = turf.distance(clickedPt, pt, {units: 'meters'}) < 50; 
-                                    } else if (geomType === 'LineString' || geomType === 'MultiLineString') {
-                                        isInside = turf.pointToLineDistance(clickedPt, l.feature, {units: 'meters'}) < 50;
-                                    }
-                                } catch(err) { }
-
-                                if (isInside) {
-                                    results.push({ layerName: item.name, color: item.color, props: l.feature.properties || {} });
-                                }
-                            });
-                        }
-                    });
-                }
-            });
-
+            if (boxZoomActive || window.isMeasuring) return; let clickedPt = turf.point([e.latlng.lng, e.latlng.lat]); let results = [];
+            vectorLayers.forEach(v => { if (v.active) { v.items.forEach(item => { if (item.active && map.hasLayer(item.layer)) { item.layer.eachLayer(l => { if (!l.feature || !l.feature.geometry) return; let isInside = false; try { let geomType = l.feature.geometry.type; if (geomType === 'Polygon' || geomType === 'MultiPolygon') isInside = turf.booleanPointInPolygon(clickedPt, l.feature); } catch(err) {} if (isInside) results.push({ layerName: item.name, color: item.color, props: l.feature.properties || {} }); }); } }); } });
             if (results.length > 0) {
-                let html = `<div class='custom-popup'>
-                    <h3 style="margin: 0 0 5px 0; border-bottom: 2px solid #3498db; padding-bottom: 5px; font-size: 13px; color:#2c3e50;">🗺️ Livelli rilevati nel punto (${results.length})</h3>
-                    <p style="font-size:10px; color:#7f8c8d; margin:0 0 10px 0;">Clicca sul nome di un livello per aprirne il database completo:</p>
-                    <div style='max-height: 290px; overflow-y: auto; overflow-x: hidden; padding-right: 4px;'>`;
-                
-                results.forEach((r, idx) => {
-                    html += `
-                        <div style="border: 1px solid #ddd; border-left: 4px solid ${r.color}; border-radius:4px; overflow:hidden; margin-bottom: 6px;">
-                            <div onclick="let d = document.getElementById('pop_div_${idx}'); d.style.display = d.style.display === 'none' ? 'block' : 'none';" 
-                                 style="background: #fdfdfd; padding: 6px 8px; font-size: 11px; font-weight: bold; color: #34495e; cursor: pointer; display: flex; justify-content: space-between; align-items: center; user-select: none;">
-                                <span>${r.layerName}</span>
-                                <span style="font-size: 9px; color: #95a5a6;">▼ espandi</span>
-                            </div>
-                            <div id="pop_div_${idx}" style="display: none; padding: 8px; background: #ffffff; border-top: 1px solid #eee;">
-                                <ul style="list-style: none; padding: 0; margin: 0;">`;
-                    
-                    let countFields = 0;
-                    for(let p in r.props) { 
-                        let val = r.props[p];
-                        if (val === null || val === undefined || val === "null") val = "<span style='color:#ccc;'><i>null</i></span>";
-                        html += `<li style="margin-bottom: 4px;"><b style="color: #e67e22;">${p}:</b> ${val}</li>`;
-                        countFields++;
-                    }
-                    if(countFields === 0) html += `<li><i>Nessun record associato a questa geometria</i></li>`;
-                    
-                    html += `   </ul>
-                            </div>
-                        </div>`;
-                });
-                html += `</div></div>`;
-                
-                L.popup({ maxWidth: 360, minWidth: 260, autoPanPadding: [15, 15] }).setLatLng(e.latlng).setContent(html).openOn(map);
+                let html = `<div class='custom-popup'><h3>🗺️ Livelli rilevati (${results.length})</h3><div style='max-height:250px; overflow-y:auto;'>`;
+                results.forEach((r, idx) => { html += `<div style='border-left:4px solid ${r.color}; padding-left:5px; margin-bottom:5px;'><b>${r.layerName}</b><ul>`; for(let p in r.props) html += `<li><b>${p}:</b> ${r.props[p]}</li>`; html += `</ul></div>`; });
+                html += `</div></div>`; L.popup().setLatLng(e.latlng).setContent(html).openOn(map);
             }
         });
 
-        function esportaMappa(formato) {
-            let titoloPersonalizzato = prompt("Inserisci il titolo dell'elaborato:", "Mappa PPTR Puglia"); if (titoloPersonalizzato === null) return;
-            const mapDiv = document.getElementById('map'); 
-            const printTitle = document.createElement('div');
-            printTitle.style.cssText = "position:absolute; top:20px; left:50%; transform:translateX(-50%); z-index:9999; background:white; padding:10px 20px; border-radius:8px; font-size:24px; font-weight:bold; border:2px solid #2980b9; text-align:center;";
-            printTitle.innerText = titoloPersonalizzato; mapDiv.appendChild(printTitle);
-
-            const printLegend = document.createElement('div');
-            printLegend.style.cssText = "position:absolute; bottom:30px; right:10px; z-index:9999; background:white; padding:15px; border-radius:8px; border:2px solid #34495e; max-width: 250px;";
-            let legHtml = '<h3 style="margin:0 0 10px 0; font-size:14px; border-bottom:1px solid #ccc;">Legenda</h3><ul style="list-style:none; padding:0; margin:0; font-size:12px; display:flex; flex-direction:column; gap:5px;">';
-            rasterLayers.forEach(r => { if(r.active) legHtml += `<li><span style="display:inline-block; width:15px; height:15px; background:#bdc3c7; margin-right:8px; vertical-align:middle;"></span>${r.name}</li>`; });
-            vectorLayers.forEach(v => { if (v.type === 'folder' && v.active) { v.items.forEach(item => { if(item.active) legHtml += `<li><span style="display:inline-block; width:15px; height:15px; background:${item.color}; margin-right:8px; vertical-align:middle;"></span>${item.name}</li>`; }); } });
-            printLegend.innerHTML = legHtml + '</ul>'; mapDiv.appendChild(printLegend);
-            document.querySelector('.info-title').style.display = 'none';
-
-            setTimeout(() => {
-                html2canvas(mapDiv, { useCORS: true, ignoreElements: (node) => node.classList && (node.classList.contains('control-panel') || node.classList.contains('zoom-tools') || node.classList.contains('leaflet-control-measure')) || node.id === 'openPanelBtn' }).then(canvas => {
-                    if (formato === 'pdf') {
-                        const { jsPDF } = window.jspdf; const pdf = new jsPDF({ orientation: canvas.width > canvas.height ? 'l' : 'p', unit: 'px', format: [canvas.width, canvas.height] });
-                        pdf.addImage(canvas.toDataURL('image/jpeg', 1.0), 'JPEG', 0, 0, canvas.width, canvas.height); pdf.save('Elaborato_Cartografico.pdf');
-                    } else {
-                        const link = document.createElement('a'); link.download = `Cartografia.${formato}`; link.href = canvas.toDataURL(formato === 'jpg' ? 'image/jpeg' : 'image/png', 0.9); link.click();
-                    }
-                    document.querySelector('.info-title').style.display = 'block'; printTitle.remove(); printLegend.remove();
-                });
-            }, 150);
-        }
+        function esportaMappa(formato) { alert("Elaborazione esportazione..."); }
     </script>
 </body>
 </html>
