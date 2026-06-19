@@ -219,10 +219,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Turf.js/6.5.0/turf.min.js"></script>
     
     <script>
-        // =====================================================================
-        // CONTROLLO VERSIONE (AGGIORNATO A 1.4 PER RESET SANO)
         const APP_VERSION = "1.4"; 
-        // =====================================================================
 
         const PACCHETTO_DATI_PREDEFINITO = [
             { url: './dati_pptr/6.1.1_GEOMORFOLOGICHE.zip', nome: '6.1.1 Geomorfologiche' },
@@ -305,11 +302,11 @@
 
         // --- LAYER CLOUDFLARE PMTILES ---
         const igmLayer = pmtiles.leafletRasterLayer(new pmtiles.PMTiles('https://pub-c033353f97014eaea6e433680b0aaba6.r2.dev/IGM_25k_Puglia.pmtiles'), {
-            maxNativeZoom: 15, maxZoom: 25, attribution: '© IGM 25k Puglia'
+            maxNativeZoom: 17, maxZoom: 25, attribution: '© IGM 25k Puglia'
         });
         
         const ctrLayer = pmtiles.leafletRasterLayer(new pmtiles.PMTiles('https://pub-c033353f97014eaea6e433680b0aaba6.r2.dev/PUGLIA_CTR_2006.pmtiles'), {
-            maxNativeZoom: 15, maxZoom: 25, attribution: '© CTR Puglia 2006'
+            maxNativeZoom: 17, maxZoom: 25, attribution: '© CTR Puglia 2006'
         });
 
         let rasterLayers = [
@@ -611,7 +608,7 @@
             setWmsLoadingCursors(nWMS); rasterLayers.push({ id: 'wms_' + Date.now(), name: label, layer: nWMS, active: false, opacity: 1 }); renderLayers(); saveAppState();
         }
 
-        async functionGridDatoSalvato(dbKey, vectorIndex) {
+        async function eliminaDatoSalvato(dbKey, vectorIndex) {
             if(!confirm("Eliminare?")) return; await localforage.removeItem(dbKey); vectorLayers[vectorIndex].items.forEach(item => map.removeLayer(item.layer)); vectorLayers.splice(vectorIndex, 1); renderLayers(); saveAppState();
         }
 
