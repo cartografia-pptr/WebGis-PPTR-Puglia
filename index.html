@@ -76,12 +76,14 @@
         .btn-order { background: #ecf0f1; border: 1px solid #ccc; border-radius: 3px; cursor: pointer; padding: 2px 5px; font-size: 10px; flex-shrink: 0;}
         .btn-order:hover { background: #bdc3c7; }
         .btn-order:disabled { opacity: 0.3; cursor: not-allowed; }
+        .btn-order:disabled:hover { background: #ecf0f1; }
         .btn-delete { background: #ffebee; border: 1px solid #ffcdd2; color: #c0392b; font-weight: bold; }
         .btn-delete:hover { background: #ffcdd2; }
 
         .search-box { display: flex; gap: 5px; margin-top: 5px;}
         .search-box input[type="text"] { flex-grow: 1; padding: 5px; border: 1px solid #ccc; border-radius: 4px; font-size: 12px; }
         .btn-custom { padding: 6px 10px; border: none; background: #2980b9; color: white; border-radius: 4px; cursor: pointer; font-size: 12px; flex-grow: 1; font-weight: bold;}
+        .btn-custom:hover { background: #3498db; }
         .btn-custom:hover { background: #3498db; }
         .btn-reset { background: #e74c3c !important; }
         .btn-reset:hover { background: #c0392b !important; }
@@ -207,6 +209,9 @@
     <div id="map"></div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+    
+    <script src="https://unpkg.com/pmtiles@3.2.0/dist/pmtiles.js"></script>
+    
     <script src="https://cdnjs.cloudflare.com/ajax/libs/proj4js/2.9.0/proj4.js"></script>
     <script src="https://unpkg.com/shpjs@latest/dist/shp.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -277,6 +282,14 @@
         const orto2013 = L.tileLayer.wms('https://webapps.sit.puglia.it/arcgis/services/BaseMaps/Ortofoto2013/ImageServer/WMSServer', wmsOptions);
         const orto06 = L.tileLayer.wms('https://webapps.sit.puglia.it/arcgis/services/BaseMaps/Ortofoto2006/ImageServer/WMSServer', wmsOptions);
 
+        // --- INTEGRAZIONE DEI DUE NUOVI FILE PMTILES GENERATI IERI ---
+        const p_igm25k = new pmtiles.PMTiles("https://pub-c033353f97014eaea6e433680b0aaba6.r2.dev/IGM_25k_Puglia.pmtiles");
+        const layerIgm25k = pmtiles.leafletRasterLayer(p_igm25k, { maxZoom: 18, attribution: 'IGM 25k Puglia via Cloudflare R2' });
+
+        const p_ctr2006 = new pmtiles.PMTiles("https://pub-c033353f97014eaea6e433680b0aaba6.r2.dev/PUGLIA_CTR_2006.pmtiles");
+        const layerCtr2006 = pmtiles.leafletRasterLayer(p_ctr2006, { maxZoom: 18, attribution: 'CTR 2006 Puglia via Cloudflare R2' });
+
+        // HO REGISTRATO I DUE STRATI DENTRO L'ARRAY RASTER PER FARE IN MODO CHE IL TUO SISTEMA LI GESTISCA IN AUTOMATICO IN LEGENDA
         let rasterLayers = [
             { id: 'osm', name: '🗺️ Mappa Strade (OSM)', layer: baseMapOSM, active: true, opacity: 1 },
             { id: 'catastolocale', name: '🗺️ Catasto Locale (Tasselli QGIS)', layer: mioCatastoLocale, active: false, opacity: 1 },
@@ -285,7 +298,9 @@
             { id: 'orto23', name: '📷 Ortofoto Puglia 2023', layer: orto2023, active: false, opacity: 1 },
             { id: 'orto19', name: '📷 Ortofoto Puglia 2019', layer: orto2019, active: false, opacity: 1 },
             { id: 'orto13', name: '📷 Ortofoto Puglia 2013', layer: orto2013, active: false, opacity: 1 },
-            { id: 'orto06', name: '📷 Ortofoto Puglia 2006', layer: orto06, active: false, opacity: 1 }
+            { id: 'orto06', name: '📷 Ortofoto Puglia 2006', layer: orto06, active: false, opacity: 1 },
+            { id: 'igm25k_pmtiles', name: '🗺️ IGM 25k Puglia (PMTiles)', layer: layerIgm25k, active: false, opacity: 1 },
+            { id: 'ctr2006_pmtiles', name: '🗺️ CTR Puglia 2006 (PMTiles)', layer: layerCtr2006, active: false, opacity: 1 }
         ];
 
         let vectorLayers = []; 
@@ -566,6 +581,7 @@
 
                 if (needsInstall && PACCHETTO_DATI_PREDEFINITO.length > 0) {
                     for (let file of PACCHETTO_DATI_PREDEFINITO) {
+                        for (let file of PACCHETTO_DATI_PREDEFINITO) {
                         try {
                             const response = await fetch(file.url);
                             if (response.ok) {
@@ -820,7 +836,6 @@
             });
         });
 
-        // POPUP COMPLETAMENTE CORRETTO PER NON TAGLIARE GLI ATTRIBUTI
         map.on('click', function(e) {
             if (boxZoomActive) return;
             
