@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>WebGis PPTR Puglia</title>
     
+    <!-- META TAG ANTI-CACHE -->
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
     <meta http-equiv="Pragma" content="no-cache" />
     <meta http-equiv="Expires" content="0" />
@@ -207,6 +208,7 @@
     <div id="map"></div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+    <script src="https://unpkg.com/pmtiles@2.11.0/dist/index.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/proj4js/2.9.0/proj4.js"></script>
     <script src="https://unpkg.com/shpjs@latest/dist/shp.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -219,8 +221,8 @@
     
     <script>
         // =====================================================================
-        // CONTROLLO VERSIONE: Cambia questo numero per aggiornare le app degli utenti!
-        const APP_VERSION = "1.1"; 
+        // CONTROLLO VERSIONE (AGGIORNATO A 1.3)
+        const APP_VERSION = "1.4"; 
         // =====================================================================
 
         const PACCHETTO_DATI_PREDEFINITO = [
@@ -277,8 +279,21 @@
         const orto2013 = L.tileLayer.wms('https://webapps.sit.puglia.it/arcgis/services/BaseMaps/Ortofoto2013/ImageServer/WMSServer', wmsOptions);
         const orto06 = L.tileLayer.wms('https://webapps.sit.puglia.it/arcgis/services/BaseMaps/Ortofoto2006/ImageServer/WMSServer', wmsOptions);
 
+        // --- I DUE LAYER PMTILES ---
+        const igmLayer = pmtiles.leafletRasterLayer(new pmtiles.PMTiles('./dati_pptr/IGM_25k_Puglia.pmtiles'), {
+            maxZoom: 25,
+            attribution: '© IGM 25k Puglia'
+        });
+        
+        const ctrLayer = pmtiles.leafletRasterLayer(new pmtiles.PMTiles('./dati_pptr/PUGLIA_CTR_2006.pmtiles'), {
+            maxZoom: 25,
+            attribution: '© CTR Puglia 2006'
+        });
+
         let rasterLayers = [
             { id: 'osm', name: '🗺️ Mappa Strade (OSM)', layer: baseMapOSM, active: true, opacity: 1 },
+            { id: 'igm25k', name: '🗺️ IGM 25k Puglia', layer: igmLayer, active: false, opacity: 1 },
+            { id: 'ctr2006', name: '🗺️ CTR Puglia 2006', layer: ctrLayer, active: false, opacity: 1 },
             { id: 'catastolocale', name: '🗺️ Catasto Locale (Tasselli QGIS)', layer: mioCatastoLocale, active: false, opacity: 1 },
             { id: 'esrisat', name: '🛰️ Satellite (Esri World Imagery)', layer: esriSat, active: false, opacity: 1 },
             { id: 'googlesat', name: '🛰️ Satellite (Google Maps)', layer: googleSat, active: false, opacity: 1 },
@@ -545,6 +560,7 @@
                 if (savedVersion !== APP_VERSION) {
                     document.getElementById('loadingDesc').innerText = "Aggiornamento in corso. Attendere...";
                     const keys = await localforage.keys();
+                    
                     for (let k of keys) {
                         if (k.startsWith('pptr_fisso_') || (!savedVersion && k.startsWith('zip_'))) {
                             await localforage.removeItem(k);
@@ -816,6 +832,7 @@
             });
         });
 
+        // POPUP CON CORREZIONE PER LO SCROLL E AUTO-PAN
         map.on('click', function(e) {
             if (boxZoomActive) return;
             
