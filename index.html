@@ -337,7 +337,9 @@
         const ctrLayer = pmtiles.leafletRasterLayer(new pmtiles.PMTiles('https://pub-c033353f97014eaea6e433680b0aaba6.r2.dev/PUGLIA_CTR_2006.pmtiles'), { maxNativeZoom: 15, maxZoom: 25, attribution: '© CTR Puglia 2006' });
 
         let rasterLayers = [
+            let rasterLayers = [
             { id: 'osm', name: '🗺️ Mappa Strade (OSM)', layer: baseMapOSM, active: true, opacity: 1 },
+            { id: 'opentopo', name: '⛰️ Mappa Topografica (OpenTopo)', layer: openTopoMap, active: false, opacity: 1 }, // <-- AGGIUNTA QUI
             { id: 'igm25k', name: '🗺️ IGM 25k Puglia', layer: igmLayer, active: false, opacity: 1 },
             { id: 'ctr2006', name: '🗺️ CTR Puglia 2006', layer: ctrLayer, active: false, opacity: 1 },
             { id: 'catastolocale', name: '🗺️ Catasto Locale (Tasselli QGIS)', layer: mioCatastoLocale, active: false, opacity: 1 },
