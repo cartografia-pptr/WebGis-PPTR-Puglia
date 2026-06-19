@@ -5,10 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>WebGis PPTR Puglia</title>
     
-    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
-    <meta http-equiv="Pragma" content="no-cache" />
-    <meta http-equiv="Expires" content="0" />
-    
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet-measure/3.1.0/leaflet-measure.css" />
     
@@ -218,11 +214,6 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Turf.js/6.5.0/turf.min.js"></script>
     
     <script>
-        // =====================================================================
-        // CONTROLLO VERSIONE (AGGIORNATO A 1.2 PER FORZARE IL REFRESH)
-        const APP_VERSION = "1.2"; 
-        // =====================================================================
-
         const PACCHETTO_DATI_PREDEFINITO = [
             { url: './dati_pptr/6.1.1_GEOMORFOLOGICHE.zip', nome: '6.1.1 Geomorfologiche' },
             { url: './dati_pptr/6.1.2_IDROLOGICHE.zip', nome: '6.1.2 Idrologiche' },
@@ -231,7 +222,7 @@
             { url: './dati_pptr/6.3.1_CULTURALI.zip', nome: '6.3.1 Culturali' },
             { url: './dati_pptr/6.3.2_PERCETTIVE.zip', nome: '6.3.2 Percettive' },
             { url: './dati_pptr/CTR Confini Comunali.zip', nome: 'CTR Confini Comunali' },
-            { url: './dati_pptr/piani_adeguati_conformi.zip', nome: 'Piani adeguati o cinformi (Giu 2026)' },
+            { url: './dati_pptr/piani_adeguati_conformi.zip', nome: 'Piani adeguati o conformi (Giu 2026)' },
             { url: './dati_pptr/art_142_co_2_vigente_giu_2026.zip', nome: 'Art. 142 Co. 2 Vigente' }
         ];
 
@@ -379,7 +370,7 @@
                                 <button class="btn-order" onclick="toggleVectorCollapse(${i})">${v.expanded ? '▼' : '►'}</button>
                                 <button class="btn-order" onclick="moveVector(${i}, 1)" ${i === vectorLayers.length - 1 ? 'disabled' : ''}>▲</button>
                                 <button class="btn-order" onclick="moveVector(${i}, -1)" ${i === 0 ? 'disabled' : ''}>▼</button>
-                                ${v.dbKey && v.dbKey.startsWith('pptr_fisso_') ? '' : `<button class="btn-order btn-delete" onclick="eliminaDatoSalvato('${v.dbKey}', ${i})" title="Elimina Shapefile">🗑️</button>`}
+                                <button class="btn-order btn-delete" onclick="eliminaDatoSalvato('${v.dbKey}', ${i})" title="Elimina Shapefile">🗑️</button>
                             </div>
                         </div>
                         ${itemsHtml}
@@ -539,51 +530,29 @@
                 let tempVectorLayers = [];
                 let tempWmsLayers = [];
                 
-                // --- SISTEMA DI AGGIORNAMENTO E PULIZIA AUTOMATICA ---
-                const savedVersion = await localforage.getItem('app_version');
+                const primoAvvioFatto = await localforage.getItem('installazione_pptr_completata');
                 
-                if (savedVersion !== APP_VERSION) {
-                    document.getElementById('loadingDesc').innerText = "Installazione nuovo aggiornamento in corso. Attendere...";
-                    const keys = await localforage.keys();
-                    
-                    for (let k of keys) {
-                        if (!savedVersion && (k.startsWith('zip_') || k === 'app_state' || k === 'installazione_pptr_completata')) {
-                            await localforage.removeItem(k);
-                        }
-                        if (k.startsWith('pptr_fisso_')) {
-                            await localforage.removeItem(k);
-                        }
-                    }
-                    await localforage.setItem('app_version', APP_VERSION);
-                }
-                
-                let needsInstall = false;
-                if (PACCHETTO_DATI_PREDEFINITO.length > 0) {
-                    const firstLayerKey = 'pptr_fisso_' + PACCHETTO_DATI_PREDEFINITO[0].nome.replace(/\s+/g, '_');
-                    const checkFirst = await localforage.getItem(firstLayerKey);
-                    if (!checkFirst) needsInstall = true;
-                }
-
-                if (needsInstall && PACCHETTO_DATI_PREDEFINITO.length > 0) {
+                if (!primoAvvioFatto && PACCHETTO_DATI_PREDEFINITO.length > 0) {
                     for (let file of PACCHETTO_DATI_PREDEFINITO) {
                         try {
                             const response = await fetch(file.url);
                             if (response.ok) {
                                 const buffer = await response.arrayBuffer();
-                                const dbKey = 'pptr_fisso_' + file.nome.replace(/\s+/g, '_');
+                                const dbKey = 'zip_' + Date.now() + Math.random();
                                 await elaboraZipDati(buffer, file.nome, dbKey, true, tempVectorLayers);
                             }
-                        } catch (e) { console.warn("Livello saltato:", file.nome); }
+                        } catch (e) { }
                     }
+                    await localforage.setItem('installazione_pptr_completata', true);
                 }
 
                 const keys = await localforage.keys();
                 for (let key of keys) {
-                    if (key.startsWith('zip_') || key.startsWith('pptr_fisso_')) {
+                    if (key.startsWith('zip_')) {
                         const savedObj = await localforage.getItem(key);
                         let arrayBuffer, fileName;
                         if (savedObj && savedObj.data) { arrayBuffer = savedObj.data; fileName = savedObj.name; } 
-                        else { arrayBuffer = savedObj; fileName = key.replace('zip_', '').replace('pptr_fisso_', ''); }
+                        else { arrayBuffer = savedObj; fileName = key.replace('zip_', ''); }
                         
                         let giaPresente = tempVectorLayers.some(v => v.dbKey === key);
                         if (!giaPresente) { await elaboraZipDati(arrayBuffer, fileName, key, false, tempVectorLayers); }
@@ -820,7 +789,6 @@
             });
         });
 
-        // POPUP COMPLETAMENTE CORRETTO PER NON TAGLIARE GLI ATTRIBUTI
         map.on('click', function(e) {
             if (boxZoomActive) return;
             
@@ -859,7 +827,7 @@
                 }
             });
 
-          if (results.length > 0) {
+            if (results.length > 0) {
                 let html = `<div class='custom-popup'>
                     <h3 style="margin: 0 0 5px 0; border-bottom: 2px solid #3498db; padding-bottom: 5px; font-size: 13px; color:#2c3e50;">🗺️ Livelli rilevati nel punto (${results.length})</h3>
                     <p style="font-size:10px; color:#7f8c8d; margin:0 0 10px 0;">Clicca sul nome di un livello per aprirne il database completo:</p>
@@ -893,6 +861,7 @@
                 
                 L.popup({ maxWidth: 360, minWidth: 260, autoPanPadding: [15, 15] }).setLatLng(e.latlng).setContent(html).openOn(map);
             }
+        });
 
         function esportaMappa(formato) {
             let titoloPersonalizzato = prompt("Inserisci il titolo dell'elaborato:", "Mappa PPTR Puglia"); if (titoloPersonalizzato === null) return;
