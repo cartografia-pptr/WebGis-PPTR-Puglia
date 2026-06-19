@@ -281,13 +281,13 @@
 
      // --- I DUE LAYER PMTILES ---
         const igmLayer = pmtiles.leafletRasterLayer(new pmtiles.PMTiles('https://pub-c033353f97014eaea6e433680b0aaba6.r2.dev/IGM_25k_Puglia.pmtiles'), {
-            maxNativeZoom: 16, // 👈 AGGIUNGI QUESTA RIGA: ferma le richieste pesanti a zoom elevati
+            maxNativeZoom: 15, // 👈 AGGIUNGI QUESTA RIGA: ferma le richieste pesanti a zoom elevati
             maxZoom: 25,       // Ti permette comunque di avvicinarti quanto vuoi
             attribution: '© IGM 25k Puglia'
         });
         
         const ctrLayer = pmtiles.leafletRasterLayer(new pmtiles.PMTiles('https://pub-c033353f97014eaea6e433680b0aaba6.r2.dev/PUGLIA_CTR_2006.pmtiles'), {
-            maxNativeZoom: 16, // 👈 AGGIUNGI QUESTA RIGA
+            maxNativeZoom: 15, // 👈 AGGIUNGI QUESTA RIGA
             maxZoom: 25,       // Ti permette comunque di avvicinarti quanto vuoi
             attribution: '© CTR Puglia 2006'
         });
