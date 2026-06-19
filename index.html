@@ -84,7 +84,6 @@
         .search-box input[type="text"] { flex-grow: 1; padding: 5px; border: 1px solid #ccc; border-radius: 4px; font-size: 12px; }
         .btn-custom { padding: 6px 10px; border: none; background: #2980b9; color: white; border-radius: 4px; cursor: pointer; font-size: 12px; flex-grow: 1; font-weight: bold;}
         .btn-custom:hover { background: #3498db; }
-        .btn-custom:hover { background: #3498db; }
         .btn-reset { background: #e74c3c !important; }
         .btn-reset:hover { background: #c0392b !important; }
         .btn-export { color: white; flex-grow: 1; text-align: center; }
@@ -581,7 +580,6 @@
 
                 if (needsInstall && PACCHETTO_DATI_PREDEFINITO.length > 0) {
                     for (let file of PACCHETTO_DATI_PREDEFINITO) {
-                        for (let file of PACCHETTO_DATI_PREDEFINITO) {
                         try {
                             const response = await fetch(file.url);
                             if (response.ok) {
