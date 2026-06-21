@@ -551,14 +551,24 @@
                     const checkFirst = await localforage.getItem(firstLayerKey); if (!checkFirst) needsInstall = true;
                 }
 
-                if (needsInstall && PACCHETTO_DATI_PREDEFINITO.length > 0) {
-                    for (let file of PACCHETTO_DATI_PREDEFINITO) {
-                        try {
-                            const response = await fetch(file.url);
-                            if (response.ok) { const buffer = await response.arrayBuffer(); const dbKey = 'pptr_fisso_' + file.nome.replace(/\s+/g, '_'); await elaboraZipDati(buffer, file.nome, dbKey, true, tempVectorLayers); }
-                        } catch (e) { }
+               if (needsInstall && PACCHETTO_DATI_PREDEFINITO.length > 0) {
+            for (let file of PACCHETTO_DATI_PREDEFINITO) {
+                try {
+                    console.log("⏳ Scaricamento: " + file.nome);
+                    const response = await fetch(file.url);
+                    if (response.ok) { 
+                        const buffer = await response.arrayBuffer(); 
+                        const dbKey = 'pptr_fisso_' + file.nome.replace(/\s+/g, '_'); 
+                        await elaboraZipDati(buffer, file.nome, dbKey, true, tempVectorLayers); 
+                        console.log("✅ Fatto: " + file.nome);
+                    } else {
+                        console.error("❌ FILE NON TROVATO (404): " + file.url);
                     }
+                } catch (e) { 
+                    console.error("🚨 ERRORE CRITICO su " + file.nome + ":", e);
                 }
+            }
+        }
                 
                 const keys = await localforage.keys();
                 for (let key of keys) {
