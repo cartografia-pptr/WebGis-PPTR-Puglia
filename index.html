@@ -613,7 +613,7 @@
                     }
                 }
                 window.appReady = true; saveAppState(); renderLayers(); generaPatternSVG();
-            } catch (err) { window.appReady = true; }
+           } catch (err) { console.error("🚨 ERRORE GLOBALE:", err); window.appReady = true; }
             document.getElementById('loadingOverlay').style.display = 'none';
         };
 
