@@ -657,14 +657,54 @@
         function resetRicerca() { vectorLayers.forEach(v => v.items.forEach(item => applyVectorStyle(item))); }
 
         map.on('click', function(e) {
-            if (boxZoomActive || window.isMeasuring) return; let clickedPt = turf.point([e.latlng.lng, e.latlng.lat]); let results = [];
-            vectorLayers.forEach(v => { if (v.active) { v.items.forEach(item => { if (item.active && map.hasLayer(item.layer)) { item.layer.eachLayer(l => { if (!l.feature || !l.feature.geometry) return; let isInside = false; try { let geomType = l.feature.geometry.type; if (geomType === 'Polygon' || geomType === 'MultiPolygon') isInside = turf.booleanPointInPolygon(clickedPt, l.feature); } catch(err) {} if (isInside) results.push({ layerName: item.name, color: item.color, props: l.feature.properties || {} }); }); } }); } });
+            if (boxZoomActive || window.isMeasuring) return; 
+            let clickedPt = turf.point([e.latlng.lng, e.latlng.lat]); 
+            let results = [];
+            
+            vectorLayers.forEach(v => { 
+                if (v.active) { 
+                    v.items.forEach(item => { 
+                        if (item.active && map.hasLayer(item.layer)) { 
+                            item.layer.eachLayer(l => { 
+                                if (!l.feature || !l.feature.geometry) return; 
+                                let isInside = false; 
+                                try { 
+                                    let geomType = l.feature.geometry.type; 
+                                    
+                                    // 1. Se è un'Area (es. PPTR, Fotovoltaico)
+                                    if (geomType === 'Polygon' || geomType === 'MultiPolygon') { 
+                                        isInside = turf.booleanPointInPolygon(clickedPt, l.feature); 
+                                    } 
+                                    // 2. Se è un Punto (es. Pale Eoliche) -> Tolleranza di 15 pixel dal clic
+                                    else if (geomType === 'Point' || geomType === 'MultiPoint') {
+                                        let layerPt = map.latLngToContainerPoint(l.getLatLng());
+                                        if (layerPt.distanceTo(e.containerPoint) < 15) isInside = true;
+                                    }
+                                    // 3. Se è una Linea (es. Strade, Fiumi) -> Tolleranza di 20 metri
+                                    else if (geomType === 'LineString' || geomType === 'MultiLineString') {
+                                        isInside = turf.pointToLineDistance(clickedPt, l.feature, {units: 'kilometers'}) < 0.02;
+                                    }
+                                } catch(err) {} 
+                                
+                                if (isInside) results.push({ layerName: item.name, color: item.color, props: l.feature.properties || {} }); 
+                            }); 
+                        } 
+                    }); 
+                } 
+            });
+            
             if (results.length > 0) {
                 let html = `<div class='custom-popup'><h3>🗺️ Livelli rilevati (${results.length})</h3><div style='max-height:250px; overflow-y:auto;'>`;
-                results.forEach((r, idx) => { html += `<div style='border-left:4px solid ${r.color}; padding-left:5px; margin-bottom:5px;'><b>${r.layerName}</b><ul>`; for(let p in r.props) html += `<li><b>${p}:</b> ${r.props[p]}</li>`; html += `</ul></div>`; });
-                html += `</div></div>`; L.popup().setLatLng(e.latlng).setContent(html).openOn(map);
+                results.forEach((r, idx) => { 
+                    html += `<div style='border-left:4px solid ${r.color}; padding-left:5px; margin-bottom:5px;'><b>${r.layerName}</b><ul>`; 
+                    for(let p in r.props) html += `<li><b>${p}:</b> ${r.props[p]}</li>`; 
+                    html += `</ul></div>`; 
+                });
+                html += `</div></div>`; 
+                L.popup().setLatLng(e.latlng).setContent(html).openOn(map);
             }
         });
+        
         function esportaMappa(formato) { alert("Elaborazione esportazione..."); }
     </script>
 </body>
