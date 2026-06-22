@@ -539,7 +539,7 @@
                 let tempVectorLayers = []; let tempWmsLayers = [];
                 const savedVersion = await localforage.getItem('app_version');
                 if (savedVersion !== APP_VERSION) {
-                    document.getElementById('loadingDesc').innerText = "Installazione Aggiornamento v1.6 in corso...";
+                    document.getElementById('loadingDesc').innerText = "Installazione Aggiornamento v1.7 in corso...";
                     const keys = await localforage.keys();
                     for (let k of keys) { if (k.startsWith('pptr_fisso_') || (!savedVersion && k.startsWith('zip_'))) await localforage.removeItem(k); }
                     await localforage.setItem('app_version', APP_VERSION);
