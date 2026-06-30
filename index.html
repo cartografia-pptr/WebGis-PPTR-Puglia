@@ -450,17 +450,27 @@
             let patternType = item.pattern || 'pieno';
 
             item.layer.eachLayer(function(l) {
+                // 🛑 CONTROLLO SALVAVITA: Se è una linea, azzera il riempimento!
+                let isLine = false;
+                if (l.feature && l.feature.geometry && l.feature.geometry.type) {
+                    isLine = l.feature.geometry.type.includes('Line');
+                }
+                let actualFillOp = isLine ? 0 : fillOp;
+
                 if (l instanceof L.CircleMarker) {
-                    l.setStyle({ fillColor: item.color, color: "#333", weight: item.border !== false ? 1 : 0, opacity: borderOp, fillOpacity: item.fill !== false ? item.opacity * 0.8 : 0 });
+                    l.setStyle({ fillColor: item.color, color: "#333", weight: item.border !== false ? 1 : 0, opacity: borderOp, fillOpacity: actualFillOp > 0 ? item.opacity * 0.8 : 0 });
                 } else if (l.setStyle) {
-                    l.setStyle({ color: item.color, weight: weight, opacity: borderOp, fillOpacity: fillOp, fillColor: item.color });
+                    l.setStyle({ color: item.color, weight: weight, opacity: borderOp, fillOpacity: actualFillOp, fillColor: item.color });
                     
-                    if (l._path && item.fill !== false) {
+                    if (l._path && actualFillOp > 0) {
                         if (patternType === 'linee') { l._path.setAttribute('fill', 'url(#pat-lines)'); document.getElementById('pat-lines').querySelector('line').setAttribute('stroke', item.color); }
                         else if (patternType === 'griglia') { l._path.setAttribute('fill', 'url(#pat-grid)'); document.getElementById('pat-grid').querySelector('path').setAttribute('stroke', item.color); }
                         else if (patternType === 'punti') { l._path.setAttribute('fill', 'url(#pat-dots)'); document.getElementById('pat-dots').querySelector('circle').setAttribute('fill', item.color); }
                         else if (patternType === 'mattoni') { l._path.setAttribute('fill', 'url(#pat-bricks)'); document.getElementById('pat-bricks').querySelector('path').setAttribute('stroke', item.color); }
                         else { l._path.setAttribute('fill', item.color); }
+                    } else if (l._path && actualFillOp === 0) {
+                        // Rimuove fisicamente il riempimento dalle linee
+                        l._path.setAttribute('fill', 'none'); 
                     }
                 }
             });
