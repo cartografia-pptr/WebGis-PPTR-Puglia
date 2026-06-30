@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>WebGis PPTR Puglia</title>
     
-    <!-- META TAG ANTI-CACHE -->
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
     <meta http-equiv="Pragma" content="no-cache" />
     <meta http-equiv="Expires" content="0" />
@@ -60,12 +59,14 @@
         .layer-item { background: #f8f9fa; border: 1px solid #ddd; padding: 6px; border-radius: 4px; display: flex; flex-direction: column; gap: 4px; }
         .layer-group { background: #eef4f8; border: 1px solid #bce0f2; }
         .layer-item-header { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+        
+        /* CORREZIONE STRUTTURALE LABELS POST-VACANZE */
         .layer-item-header label { font-size: 12px; font-weight: bold; cursor: pointer; flex-grow: 1; display: flex; align-items: flex-start; gap: 5px; min-width: 0; }
         
         .color-picker {
             -webkit-appearance: none; -moz-appearance: none; appearance: none;
             width: 16px; height: 16px; padding: 0; border: 1px solid #7f8c8d; border-radius: 3px;
-            cursor: pointer; margin-right: 2px; flex-shrink: 0;
+            cursor: pointer; margin-right: 2px; flex-shrink: 0; margin-top: 1px;
         }
         .color-picker::-webkit-color-swatch-wrapper { padding: 0; }
         .color-picker::-webkit-color-swatch { border: none; border-radius: 2px; }
@@ -222,21 +223,21 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Turf.js/6.5.0/turf.min.js"></script>
     
     <script>
-        const APP_VERSION = "1.7"; 
+        const APP_VERSION = "1.8"; 
 
         const PACCHETTO_DATI_PREDEFINITO = [
-    { url: './dati_pptr/6.1.1_GEOMORFOLOGICHE.zip', nome: '6.1.1 Geomorfologiche' },
-    { url: './dati_pptr/6.1.2_IDROLOGICHE.zip', nome: '6.1.2 Idrologiche' },
-    { url: './dati_pptr/6.2.1_BOTANICO_VEGETAZIONALI.zip', nome: '6.2.1 Botanico Vegetazionali' },
-    { url: './dati_pptr/6.2.2_AREE_PROTETTE.zip', nome: '6.2.2 Aree Protette' },
-    { url: './dati_pptr/6.3.1_CULTURALI.zip', nome: '6.3.1 Culturali' },
-    { url: './dati_pptr/6.3.2_PERCETTIVE.zip', nome: '6.3.2 Percettive' },
-    { url: './dati_pptr/CTR Confini Comunali.zip', nome: 'CTR Confini Comunali' },
-    { url: './dati_pptr/piani_adeguati_conformi_2026.zip', nome: 'Piani adeguati o conformi (Giu 2026)' },
-    { url: './dati_pptr/art_142_co_2_vigente_giu_2026.zip', nome: 'Art. 142 Co. 2 Vigente' },
-    { url: './dati_pptr/Eolico Puglia.zip', nome: 'Eolico Puglia' },
-    { url: './dati_pptr/Fotovoltaico_WGS84_33NORD.zip', nome: 'Fotovoltaico Puglia' }
-];
+            { url: './dati_pptr/6.1.1_GEOMORFOLOGICHE.zip', nome: '6.1.1 Geomorfologiche' },
+            { url: './dati_pptr/6.1.2_IDROLOGICHE.zip', nome: '6.1.2 Idrologiche' },
+            { url: './dati_pptr/6.2.1_BOTANICO_VEGETAZIONALI.zip', nome: '6.2.1 Botanico Vegetazionali' },
+            { url: './dati_pptr/6.2.2_AREE_PROTETTE.zip', nome: '6.2.2 Aree Protette' },
+            { url: './dati_pptr/6.3.1_CULTURALI.zip', nome: '6.3.1 Culturali' },
+            { url: './dati_pptr/6_3_2_PERCETTIVE.zip', nome: '6.3.2 Percettive' },
+            { url: './dati_pptr/CTR Confini Comunali.zip', nome: 'CTR Confini Comunali' },
+            { url: './dati_pptr/piani_adeguati_conformi_2026.zip', nome: 'Piani adeguati o conformi (Giu 2026)' },
+            { url: './dati_pptr/art_142_co_2_vigente_giu_2026.zip', nome: 'Art. 142 Co. 2 Vigente' },
+            { url: './dati_pptr/Eolico Puglia.zip', nome: 'Eolico Puglia' },
+            { url: './dati_pptr/Fotovoltaico_WGS84_33NORD.zip', nome: 'Fotovoltaico Puglia' }
+        ];
 
         window.appReady = false; 
 
@@ -299,7 +300,7 @@
         }
         map.on('layeradd', function() { setTimeout(generaPatternSVG, 100); });
 
-        // --- 1. PATCH PER IL BUG DI LEAFLET-MEASURE ---
+        // --- PATCH PER IL BUG DI LEAFLET-MEASURE ---
         L.Control.Measure.include({
             _setCaptureMarkerIcon: function () {
                 this._captureMarker.options.autoPanOnFocus = false;
@@ -307,7 +308,7 @@
             }
         });
 
-        // --- 2. CONFIGURAZIONE STRUMENTO MISURA ---
+        // --- CONFIGURAZIONE STRUMENTO MISURA ---
         const measureControl = new L.Control.Measure({
             position: 'topleft', primaryLengthUnit: 'meters', secondaryLengthUnit: 'kilometers', primaryAreaUnit: 'sqmeters', secondaryAreaUnit: 'hectares', activeColor: '#e67e22', completedColor: '#27ae60'
         });
@@ -321,8 +322,6 @@
 
         const mioCatastoLocale = L.tileLayer('./catasto_tasselli/{z}/{x}/{y}.png', { minZoom: 14, maxNativeZoom: 21, maxZoom: 25, crossOrigin: true, attribution: '© Elaborazione Interna Catasto' });
         const baseMapOSM = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxNativeZoom: 19, maxZoom: 25, crossOrigin: true });
-        
-        // --- LIVELLO BASE STRUTTURATO: OPENTOPO MAP ---
         const openTopoMap = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', { maxNativeZoom: 15, maxZoom: 25, crossOrigin: true, attribution: '© OpenTopoMap, SRTM' });
 
         const googleSat = L.tileLayer('https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', { maxZoom: 20, attribution: '© Google' });
@@ -399,10 +398,10 @@
                         itemsHtml += `
                             <div class="layer-item" style="background:#fff; border-color:#eee; padding:4px;">
                                 <div class="layer-item-header">
-                                    <label style="font-size:11px; font-weight:normal; align-items:center;">
+                                    <label style="font-size:11px; font-weight:normal; display: flex; align-items: flex-start; gap: 5px; min-width: 0; flex-grow: 1; cursor: pointer;">
                                         <input type="checkbox" id="chk_vec_${i}_${j}" onchange="toggleVectorItem(${i}, ${j}, this.checked)" ${item.active?'checked':''}>
                                         <input type="color" class="color-picker" value="${item.color}" onchange="changeVectorColor(${i}, ${j}, this.value)">
-                                        <span style="white-space: nowrap; max-width:110px; overflow:hidden; text-overflow:ellipsis;" title="${item.name}">${item.name}</span>
+                                        <span style="white-space: normal; word-break: break-word; min-width: 0; flex: 1; line-height: 1.2;" title="${item.name}">${item.name}</span>
                                     </label>
                                     <div style="white-space: nowrap; flex-shrink: 0;">
                                         <button class="btn-order" onclick="moveVectorItem(${i}, ${j}, 1)" ${j === v.items.length - 1 ? 'disabled' : ''}>▲</button>
@@ -533,43 +532,44 @@
         map.on('mousemove', function(e) { if (!boxZoomActive || !startPoint) return; let currentPoint = e.containerPoint; let bounds = L.bounds(startPoint, currentPoint); zoomBox.style.left = bounds.min.x + 'px'; zoomBox.style.top = bounds.min.y + 'px'; zoomBox.style.width = (bounds.max.x - bounds.min.x) + 'px'; zoomBox.style.height = (bounds.max.y - bounds.min.y) + 'px'; });
         map.on('mouseup', function(e) { if (!boxZoomActive || !startPoint) return; let endPoint = e.containerPoint; let pixelBounds = L.bounds(startPoint, endPoint); if (pixelBounds.getSize().x > 10 && pixelBounds.getSize().y > 10) { let latLngBounds = L.latLngBounds(map.containerPointToLatLng(pixelBounds.min), map.containerPointToLatLng(pixelBounds.max)); map.fitBounds(latLngBounds); } toggleBoxZoom(); });
 
+        // --- APERTURA E INSTALLAZIONE CON LOGICA DI VERIFICA ROBUSTA ---
         window.onload = async function() {
             document.getElementById('loadingOverlay').style.display = 'flex';
             try {
                 let tempVectorLayers = []; let tempWmsLayers = [];
                 const savedVersion = await localforage.getItem('app_version');
+                const keysInDb = await localforage.keys();
+                let installedDefaultsCount = keysInDb.filter(k => k.startsWith('pptr_fisso_')).length;
+                
+                // Forza installazione se cambia la versione OPPURE se mancano dei file fisici in memoria
+                let needsInstall = (savedVersion !== APP_VERSION) || (installedDefaultsCount < PACCHETTO_DATI_PREDEFINITO.length);
+
                 if (savedVersion !== APP_VERSION) {
-                    document.getElementById('loadingDesc').innerText = "Installazione Aggiornamento v1.7 in corso...";
-                    const keys = await localforage.keys();
-                    for (let k of keys) { if (k.startsWith('pptr_fisso_') || (!savedVersion && k.startsWith('zip_'))) await localforage.removeItem(k); }
+                    document.getElementById('loadingDesc').innerText = "Installazione Aggiornamento v" + APP_VERSION + " in corso...";
+                    for (let k of keysInDb) { if (k.startsWith('pptr_fisso_') || (!savedVersion && k.startsWith('zip_'))) await localforage.removeItem(k); }
+                }
+
+                if (needsInstall && PACCHETTO_DATI_PREDEFINITO.length > 0) {
+                    for (let file of PACCHETTO_DATI_PREDEFINITO) {
+                        try {
+                            console.log("⏳ Scaricamento: " + file.nome);
+                            const response = await fetch(file.url);
+                            if (response.ok) { 
+                                const buffer = await response.arrayBuffer(); 
+                                const dbKey = 'pptr_fisso_' + file.nome.replace(/\s+/g, '_'); 
+                                await elaboraZipDati(buffer, file.nome, dbKey, true, tempVectorLayers); 
+                                console.log("✅ Fatto: " + file.nome);
+                            } else {
+                                console.error("❌ FILE NON TROVATO (404): " + file.url);
+                            }
+                        } catch (e) { 
+                            console.error("🚨 ERRORE CRITICO su " + file.nome + ":", e);
+                        }
+                    }
                     await localforage.setItem('app_version', APP_VERSION);
                 }
-
-                let needsInstall = false;
-                if (PACCHETTO_DATI_PREDEFINITO.length > 0) {
-                    const firstLayerKey = 'pptr_fisso_' + PACCHETTO_DATI_PREDEFINITO[0].nome.replace(/\s+/g, '_');
-                    const checkFirst = await localforage.getItem(firstLayerKey); if (!checkFirst) needsInstall = true;
-                }
-
-               if (needsInstall && PACCHETTO_DATI_PREDEFINITO.length > 0) {
-            for (let file of PACCHETTO_DATI_PREDEFINITO) {
-                try {
-                    console.log("⏳ Scaricamento: " + file.nome);
-                    const response = await fetch(file.url);
-                    if (response.ok) { 
-                        const buffer = await response.arrayBuffer(); 
-                        const dbKey = 'pptr_fisso_' + file.nome.replace(/\s+/g, '_'); 
-                        await elaboraZipDati(buffer, file.nome, dbKey, true, tempVectorLayers); 
-                        console.log("✅ Fatto: " + file.nome);
-                    } else {
-                        console.error("❌ FILE NON TROVATO (404): " + file.url);
-                    }
-                } catch (e) { 
-                    console.error("🚨 ERRORE CRITICO su " + file.nome + ":", e);
-                }
-            }
-        }
                 
+                // Lettura dei dati archiviati e caricamento nel pannello
                 const keys = await localforage.keys();
                 for (let key of keys) {
                     if (key.startsWith('zip_') || key.startsWith('pptr_fisso_')) {
@@ -613,7 +613,7 @@
                     }
                 }
                 window.appReady = true; saveAppState(); renderLayers(); generaPatternSVG();
-           } catch (err) { console.error("🚨 ERRORE GLOBALE:", err); window.appReady = true; }
+            } catch (err) { console.error("🚨 ERRORE GLOBALE SUL CARICAMENTO:", err); window.appReady = true; }
             document.getElementById('loadingOverlay').style.display = 'none';
         };
 
@@ -681,16 +681,13 @@
                                 try { 
                                     let geomType = l.feature.geometry.type; 
                                     
-                                    // 1. Se è un'Area (es. PPTR, Fotovoltaico)
                                     if (geomType === 'Polygon' || geomType === 'MultiPolygon') { 
                                         isInside = turf.booleanPointInPolygon(clickedPt, l.feature); 
                                     } 
-                                    // 2. Se è un Punto (es. Pale Eoliche) -> Tolleranza di 15 pixel dal clic
                                     else if (geomType === 'Point' || geomType === 'MultiPoint') {
                                         let layerPt = map.latLngToContainerPoint(l.getLatLng());
                                         if (layerPt.distanceTo(e.containerPoint) < 15) isInside = true;
                                     }
-                                    // 3. Se è una Linea (es. Strade, Fiumi) -> Tolleranza di 20 metri
                                     else if (geomType === 'LineString' || geomType === 'MultiLineString') {
                                         isInside = turf.pointToLineDistance(clickedPt, l.feature, {units: 'kilometers'}) < 0.02;
                                     }
