@@ -60,7 +60,6 @@
         .layer-group { background: #eef4f8; border: 1px solid #bce0f2; }
         .layer-item-header { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
         
-        /* CORREZIONE STRUTTURALE LABELS POST-VACANZE */
         .layer-item-header label { font-size: 12px; font-weight: bold; cursor: pointer; flex-grow: 1; display: flex; align-items: flex-start; gap: 5px; min-width: 0; }
         
         .color-picker {
@@ -222,10 +221,9 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Turf.js/6.5.0/turf.min.js"></script>
     
     <script>
-        const APP_VERSION = "1.9"; 
+        const APP_VERSION = "2.0"; 
 
         const PACCHETTO_DATI_PREDEFINITO = [
-           const PACCHETTO_DATI_PREDEFINITO = [
             { url: './dati_pptr/6.1.1_GEOMORFOLOGICHE.zip', nome: '6.1.1 Geomorfologiche' },
             { url: './dati_pptr/6.1.2_IDROLOGICHE.zip', nome: '6.1.2 Idrologiche' },
             { url: './dati_pptr/6.2.1_BOTANICO_VEGETAZIONALI.zip', nome: '6.2.1 Botanico Vegetazionali' },
@@ -239,6 +237,7 @@
             { url: './dati_pptr/Eolico Puglia.zip', nome: 'Eolico Puglia' },
             { url: './dati_pptr/Fotovoltaico_WGS84_33NORD.zip', nome: 'Fotovoltaico Puglia' }
         ];
+
         window.appReady = false; 
 
         if (typeof proj4 !== 'undefined') {
@@ -266,7 +265,6 @@
 
         L.control.scale({ imperial: false, position: 'bottomleft' }).addTo(map);
 
-        // --- INIEZIONE INIZIALE PATTERN SVG ---
         function generaPatternSVG() {
             const svgNamespace = "http://www.w3.org/2000/svg";
             const svgContainer = map._container.querySelector('svg') || document.createElementNS(svgNamespace, "svg");
@@ -300,7 +298,6 @@
         }
         map.on('layeradd', function() { setTimeout(generaPatternSVG, 100); });
 
-        // --- PATCH PER IL BUG DI LEAFLET-MEASURE ---
         L.Control.Measure.include({
             _setCaptureMarkerIcon: function () {
                 this._captureMarker.options.autoPanOnFocus = false;
@@ -308,7 +305,6 @@
             }
         });
 
-        // --- CONFIGURAZIONE STRUMENTO MISURA ---
         const measureControl = new L.Control.Measure({
             position: 'topleft', primaryLengthUnit: 'meters', secondaryLengthUnit: 'kilometers', primaryAreaUnit: 'sqmeters', secondaryAreaUnit: 'hectares', activeColor: '#e67e22', completedColor: '#27ae60'
         });
@@ -532,7 +528,6 @@
         map.on('mousemove', function(e) { if (!boxZoomActive || !startPoint) return; let currentPoint = e.containerPoint; let bounds = L.bounds(startPoint, currentPoint); zoomBox.style.left = bounds.min.x + 'px'; zoomBox.style.top = bounds.min.y + 'px'; zoomBox.style.width = (bounds.max.x - bounds.min.x) + 'px'; zoomBox.style.height = (bounds.max.y - bounds.min.y) + 'px'; });
         map.on('mouseup', function(e) { if (!boxZoomActive || !startPoint) return; let endPoint = e.containerPoint; let pixelBounds = L.bounds(startPoint, endPoint); if (pixelBounds.getSize().x > 10 && pixelBounds.getSize().y > 10) { let latLngBounds = L.latLngBounds(map.containerPointToLatLng(pixelBounds.min), map.containerPointToLatLng(pixelBounds.max)); map.fitBounds(latLngBounds); } toggleBoxZoom(); });
 
-        // --- APERTURA E INSTALLAZIONE CON LOGICA DI VERIFICA ROBUSTA ---
         window.onload = async function() {
             document.getElementById('loadingOverlay').style.display = 'flex';
             try {
@@ -541,7 +536,6 @@
                 const keysInDb = await localforage.keys();
                 let installedDefaultsCount = keysInDb.filter(k => k.startsWith('pptr_fisso_')).length;
                 
-                // Forza installazione se cambia la versione OPPURE se mancano dei file fisici in memoria
                 let needsInstall = (savedVersion !== APP_VERSION) || (installedDefaultsCount < PACCHETTO_DATI_PREDEFINITO.length);
 
                 if (savedVersion !== APP_VERSION) {
@@ -569,7 +563,6 @@
                     await localforage.setItem('app_version', APP_VERSION);
                 }
                 
-                // Lettura dei dati archiviati e caricamento nel pannello
                 const keys = await localforage.keys();
                 for (let key of keys) {
                     if (key.startsWith('zip_') || key.startsWith('pptr_fisso_')) {
