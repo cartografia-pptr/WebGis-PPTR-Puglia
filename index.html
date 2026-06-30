@@ -548,7 +548,7 @@
                 let needsInstall = (savedVersion !== APP_VERSION) || (installedDefaultsCount < PACCHETTO_DATI_PREDEFINITO.length);
 
                 if (savedVersion !== APP_VERSION) {
-                    document.getElementById('loadingDesc').innerText = "Installazione Aggiornamento v" + APP_VERSION + " in corso...";
+                    document.getElementById('loadingDesc').innerText = "Installazione Aggiornamento v3.0" + APP_VERSION + " in corso...";
                     for (let k of keysInDb) { if (k.startsWith('pptr_fisso_') || (!savedVersion && k.startsWith('zip_'))) await localforage.removeItem(k); }
                 }
 
