@@ -329,6 +329,7 @@
 
         const igmLayer = pmtiles.leafletRasterLayer(new pmtiles.PMTiles('https://pub-c033353f97014eaea6e433680b0aaba6.r2.dev/IGM_25k_Puglia.pmtiles'), { maxNativeZoom: 16, maxZoom: 25, attribution: '© IGM 25k Puglia' });
         const ctrLayer = pmtiles.leafletRasterLayer(new pmtiles.PMTiles('https://pub-c033353f97014eaea6e433680b0aaba6.r2.dev/PUGLIA_CTR_2006.pmtiles'), { maxNativeZoom: 16, maxZoom: 25, attribution: '© CTR Puglia 2006' });
+        const 1988Layer = pmtiles.leafletRasterLayer(new pmtiles.PMTiles('https://pub-c033353f97014eaea6e433680b0aaba6.r2.dev/Geoportale_ORTO_1988.pmtiles'), { maxNativeZoom: 16, maxZoom: 25, attribution: '© Orto 1988 geoportale' });
 
         let rasterLayers = [
             { id: 'osm', name: '🗺️ Mappa Strade (OSM)', layer: baseMapOSM, active: true, opacity: 1 },
@@ -342,6 +343,7 @@
             { id: 'orto19', name: '📷 Ortofoto Puglia 2019', layer: orto2019, active: false, opacity: 1 },
             { id: 'orto13', name: '📷 Ortofoto Puglia 2013', layer: orto2013, active: false, opacity: 1 },
             { id: 'orto06', name: '📷 Ortofoto Puglia 2006', layer: orto06, active: false, opacity: 1 }
+            { id: 'orto1988', name: '📷 Ortofoto Geoportale 1988', layer: orto1988, active: false, opacity: 1 }
         ];
 
         let vectorLayers = []; 
