@@ -328,23 +328,24 @@
         const orto06 = L.tileLayer.wms('https://webapps.sit.puglia.it/arcgis/services/BaseMaps/Ortofoto2006/ImageServer/WMSServer', wmsOptions);
 
         const igmLayer = pmtiles.leafletRasterLayer(new pmtiles.PMTiles('https://pub-c033353f97014eaea6e433680b0aaba6.r2.dev/IGM_25k_Puglia.pmtiles'), { maxNativeZoom: 16, maxZoom: 25, attribution: '© IGM 25k Puglia' });
-        const ctrLayer = pmtiles.leafletRasterLayer(new pmtiles.PMTiles('https://pub-c033353f97014eaea6e433680b0aaba6.r2.dev/PUGLIA_CTR_2006.pmtiles'), { maxNativeZoom: 16, maxZoom: 25, attribution: '© CTR Puglia 2006' });
-        const 1988Layer = pmtiles.leafletRasterLayer(new pmtiles.PMTiles('https://pub-c033353f97014eaea6e433680b0aaba6.r2.dev/Geoportale_ORTO_1988.pmtiles'), { maxNativeZoom: 16, maxZoom: 25, attribution: '© Orto 1988 geoportale' });
+const ctrLayer = pmtiles.leafletRasterLayer(new pmtiles.PMTiles('https://pub-c033353f97014eaea6e433680b0aaba6.r2.dev/PUGLIA_CTR_2006.pmtiles'), { maxNativeZoom: 16, maxZoom: 25, attribution: '© CTR Puglia 2006' });
+// Sostituito "1988Layer" con "orto1988" per evitare che inizi con un numero
+const orto1988 = pmtiles.leafletRasterLayer(new pmtiles.PMTiles('https://pub-c033353f97014eaea6e433680b0aaba6.r2.dev/Geoportale_ORTO_1988.pmtiles'), { maxNativeZoom: 16, maxZoom: 25, attribution: '© Orto 1988 geoportale' });
 
-        let rasterLayers = [
-            { id: 'osm', name: '🗺️ Mappa Strade (OSM)', layer: baseMapOSM, active: true, opacity: 1 },
-            { id: 'opentopo', name: '⛰️ Rilievo Topografico (OpenTopo)', layer: openTopoMap, active: false, opacity: 1 },
-            { id: 'igm25k', name: '🗺️ IGM 25k Puglia', layer: igmLayer, active: false, opacity: 1 },
-            { id: 'ctr2006', name: '🗺️ CTR Puglia 2006', layer: ctrLayer, active: false, opacity: 1 },
-            { id: 'catastolocale', name: '🗺️ Catasto Locale (Tasselli QGIS)', layer: mioCatastoLocale, active: false, opacity: 1 },
-            { id: 'esrisat', name: '🛰️ Satellite (Esri World Imagery)', layer: esriSat, active: false, opacity: 1 },
-            { id: 'googlesat', name: '🛰️ Satellite (Google Maps)', layer: googleSat, active: false, opacity: 1 },
-            { id: 'orto23', name: '📷 Ortofoto Puglia 2023', layer: orto2023, active: false, opacity: 1 },
-            { id: 'orto19', name: '📷 Ortofoto Puglia 2019', layer: orto2019, active: false, opacity: 1 },
-            { id: 'orto13', name: '📷 Ortofoto Puglia 2013', layer: orto2013, active: false, opacity: 1 },
-            { id: 'orto06', name: '📷 Ortofoto Puglia 2006', layer: orto06, active: false, opacity: 1 }
-            { id: 'orto1988', name: '📷 Ortofoto Geoportale 1988', layer: orto1988, active: false, opacity: 1 }
-        ];
+let rasterLayers = [
+    { id: 'osm', name: '🗺️ Mappa Strade (OSM)', layer: baseMapOSM, active: true, opacity: 1 },
+    { id: 'opentopo', name: '⛰️ Rilievo Topografico (OpenTopo)', layer: openTopoMap, active: false, opacity: 1 },
+    { id: 'igm25k', name: '🗺️ IGM 25k Puglia', layer: igmLayer, active: false, opacity: 1 },
+    { id: 'ctr2006', name: '🗺️ CTR Puglia 2006', layer: ctrLayer, active: false, opacity: 1 },
+    { id: 'catastolocale', name: '🗺️ Catasto Locale (Tasselli QGIS)', layer: mioCatastoLocale, active: false, opacity: 1 },
+    { id: 'esrisat', name: '🛰️ Satellite (Esri World Imagery)', layer: esriSat, active: false, opacity: 1 },
+    { id: 'googlesat', name: '🛰️ Satellite (Google Maps)', layer: googleSat, active: false, opacity: 1 },
+    { id: 'orto23', name: '📷 Ortofoto Puglia 2023', layer: orto2023, active: false, opacity: 1 },
+    { id: 'orto19', name: '📷 Ortofoto Puglia 2019', layer: orto2019, active: false, opacity: 1 },
+    { id: 'orto13', name: '📷 Ortofoto Puglia 2013', layer: orto2013, active: false, opacity: 1 },
+    { id: 'orto06', name: '📷 Ortofoto Puglia 2006', layer: orto06, active: false, opacity: 1 }, // <-- AGGIUNTA LA VIRGOLA QUI
+    { id: 'orto1988', name: '📷 Ortofoto Geoportale 1988', layer: orto1988, active: false, opacity: 1 } // <-- IL NOME LAYER ORA COMBACIA
+];
 
         let vectorLayers = []; 
         let shapefileLayers = []; 
