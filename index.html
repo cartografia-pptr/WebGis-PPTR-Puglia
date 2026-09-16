@@ -264,6 +264,50 @@
 
         L.control.scale({ imperial: false, position: 'bottomleft' }).addTo(map);
 
+        // --- INIZIO NUOVO BLOCCO: SELETTORE DI SCALA ---
+        const ScaleSelectorControl = L.Control.extend({
+            options: { position: 'topright' }, 
+            
+            onAdd: function (map) {
+                const div = L.DomUtil.create('div', 'leaflet-bar leaflet-control');
+                div.style.backgroundColor = 'white';
+                div.style.padding = '5px 10px';
+                div.style.cursor = 'pointer';
+                div.style.fontFamily = 'Arial, sans-serif';
+                div.style.fontSize = '13px';
+
+                div.innerHTML = `
+                    <label for="scaleSelect" style="font-weight: bold; margin-right: 5px;">Scala ≈</label>
+                    <select id="scaleSelect" style="border: none; outline: none; cursor: pointer; font-size: 13px;">
+                        <option value="">Seleziona...</option>
+                        <option value="18">1:2.000</option>
+                        <option value="16">1:5.000</option>
+                        <option value="15">1:10.000</option>
+                        <option value="14">1:25.000</option>
+                        <option value="13">1:50.000</option>
+                        <option value="12">1:100.000</option>
+                    </select>
+                `;
+
+                L.DomEvent.disableClickPropagation(div);
+
+                setTimeout(() => {
+                    const selectElement = document.getElementById('scaleSelect');
+                    selectElement.addEventListener('change', function(e) {
+                        if(e.target.value) {
+                            map.setZoom(parseInt(e.target.value));
+                            e.target.value = ""; 
+                        }
+                    });
+                }, 100);
+
+                return div;
+            }
+        });
+
+        map.addControl(new ScaleSelectorControl());
+        // --- FINE NUOVO BLOCCO ---
+
         function generaPatternSVG() {
             const svgNamespace = "http://www.w3.org/2000/svg";
             const svgContainer = map._container.querySelector('svg') || document.createElementNS(svgNamespace, "svg");
@@ -328,24 +372,23 @@
         const orto06 = L.tileLayer.wms('https://webapps.sit.puglia.it/arcgis/services/BaseMaps/Ortofoto2006/ImageServer/WMSServer', wmsOptions);
 
         const igmLayer = pmtiles.leafletRasterLayer(new pmtiles.PMTiles('https://pub-c033353f97014eaea6e433680b0aaba6.r2.dev/IGM_25k_Puglia.pmtiles'), { maxNativeZoom: 16, maxZoom: 25, attribution: '© IGM 25k Puglia' });
-const ctrLayer = pmtiles.leafletRasterLayer(new pmtiles.PMTiles('https://pub-c033353f97014eaea6e433680b0aaba6.r2.dev/PUGLIA_CTR_2006.pmtiles'), { maxNativeZoom: 16, maxZoom: 25, attribution: '© CTR Puglia 2006' });
-// Sostituito "1988Layer" con "orto1988" per evitare che inizi con un numero
-const orto1988 = pmtiles.leafletRasterLayer(new pmtiles.PMTiles('https://pub-c033353f97014eaea6e433680b0aaba6.r2.dev/Geoportale_ORTO_1988.pmtiles'), { maxNativeZoom: 16, maxZoom: 25, attribution: '© Orto 1988 geoportale' });
+        const ctrLayer = pmtiles.leafletRasterLayer(new pmtiles.PMTiles('https://pub-c033353f97014eaea6e433680b0aaba6.r2.dev/PUGLIA_CTR_2006.pmtiles'), { maxNativeZoom: 16, maxZoom: 25, attribution: '© CTR Puglia 2006' });
+        const orto1988 = pmtiles.leafletRasterLayer(new pmtiles.PMTiles('https://pub-c033353f97014eaea6e433680b0aaba6.r2.dev/Geoportale_ORTO_1988.pmtiles'), { maxNativeZoom: 16, maxZoom: 25, attribution: '© Orto 1988 geoportale' });
 
-let rasterLayers = [
-    { id: 'osm', name: '🗺️ Mappa Strade (OSM)', layer: baseMapOSM, active: true, opacity: 1 },
-    { id: 'opentopo', name: '⛰️ Rilievo Topografico (OpenTopo)', layer: openTopoMap, active: false, opacity: 1 },
-    { id: 'igm25k', name: '🗺️ IGM 25k Puglia', layer: igmLayer, active: false, opacity: 1 },
-    { id: 'ctr2006', name: '🗺️ CTR Puglia 2006', layer: ctrLayer, active: false, opacity: 1 },
-    { id: 'catastolocale', name: '🗺️ Catasto Locale (Tasselli QGIS)', layer: mioCatastoLocale, active: false, opacity: 1 },
-    { id: 'esrisat', name: '🛰️ Satellite (Esri World Imagery)', layer: esriSat, active: false, opacity: 1 },
-    { id: 'googlesat', name: '🛰️ Satellite (Google Maps)', layer: googleSat, active: false, opacity: 1 },
-    { id: 'orto23', name: '📷 Ortofoto Puglia 2023', layer: orto2023, active: false, opacity: 1 },
-    { id: 'orto19', name: '📷 Ortofoto Puglia 2019', layer: orto2019, active: false, opacity: 1 },
-    { id: 'orto13', name: '📷 Ortofoto Puglia 2013', layer: orto2013, active: false, opacity: 1 },
-    { id: 'orto06', name: '📷 Ortofoto Puglia 2006', layer: orto06, active: false, opacity: 1 }, // <-- AGGIUNTA LA VIRGOLA QUI
-    { id: 'orto1988', name: '📷 Ortofoto Geoportale 1988', layer: orto1988, active: false, opacity: 1 } // <-- IL NOME LAYER ORA COMBACIA
-];
+        let rasterLayers = [
+            { id: 'osm', name: '🗺️ Mappa Strade (OSM)', layer: baseMapOSM, active: true, opacity: 1 },
+            { id: 'opentopo', name: '⛰️ Rilievo Topografico (OpenTopo)', layer: openTopoMap, active: false, opacity: 1 },
+            { id: 'igm25k', name: '🗺️ IGM 25k Puglia', layer: igmLayer, active: false, opacity: 1 },
+            { id: 'ctr2006', name: '🗺️ CTR Puglia 2006', layer: ctrLayer, active: false, opacity: 1 },
+            { id: 'catastolocale', name: '🗺️ Catasto Locale (Tasselli QGIS)', layer: mioCatastoLocale, active: false, opacity: 1 },
+            { id: 'esrisat', name: '🛰️ Satellite (Esri World Imagery)', layer: esriSat, active: false, opacity: 1 },
+            { id: 'googlesat', name: '🛰️ Satellite (Google Maps)', layer: googleSat, active: false, opacity: 1 },
+            { id: 'orto23', name: '📷 Ortofoto Puglia 2023', layer: orto2023, active: false, opacity: 1 },
+            { id: 'orto19', name: '📷 Ortofoto Puglia 2019', layer: orto2019, active: false, opacity: 1 },
+            { id: 'orto13', name: '📷 Ortofoto Puglia 2013', layer: orto2013, active: false, opacity: 1 },
+            { id: 'orto06', name: '📷 Ortofoto Puglia 2006', layer: orto06, active: false, opacity: 1 },
+            { id: 'orto1988', name: '📷 Ortofoto Geoportale 1988', layer: orto1988, active: false, opacity: 1 }
+        ];
 
         let vectorLayers = []; 
         let shapefileLayers = []; 
@@ -452,7 +495,6 @@ let rasterLayers = [
             let patternType = item.pattern || 'pieno';
 
             item.layer.eachLayer(function(l) {
-                // 🛑 CONTROLLO SALVAVITA: Se è una linea, azzera il riempimento!
                 let isLine = false;
                 if (l.feature && l.feature.geometry && l.feature.geometry.type) {
                     isLine = l.feature.geometry.type.includes('Line');
@@ -471,7 +513,6 @@ let rasterLayers = [
                         else if (patternType === 'mattoni') { l._path.setAttribute('fill', 'url(#pat-bricks)'); document.getElementById('pat-bricks').querySelector('path').setAttribute('stroke', item.color); }
                         else { l._path.setAttribute('fill', item.color); }
                     } else if (l._path && actualFillOp === 0) {
-                        // Rimuove fisicamente il riempimento dalle linee
                         l._path.setAttribute('fill', 'none'); 
                     }
                 }
@@ -717,7 +758,68 @@ let rasterLayers = [
             }
         });
         
-        function esportaMappa(formato) { alert("Elaborazione esportazione..."); }
-    </script>
-</body>
-</html>
+        async function esportaMappa(formato) {
+            // 1. Mostriamo la schermata di caricamento per avvisare l'utente
+            const loadingOverlay = document.getElementById('loadingOverlay');
+            const loadingDesc = document.getElementById('loadingDesc');
+            loadingDesc.innerText = "Generazione " + formato.toUpperCase() + " in corso... (potrebbe richiedere qualche secondo)";
+            loadingOverlay.style.display = 'flex';
+
+            try {
+                const mapElement = document.getElementById('map');
+                
+                // 2. Usiamo html2canvas per "scattare la foto" al div della mappa
+                const canvas = await html2canvas(mapElement, {
+                    useCORS: true, // Fondamentale per caricare le mappe di Google/OSM senza blocchi di sicurezza
+                    allowTaint: false,
+                    scale: 2 // Raddoppia la risoluzione per avere esportazioni più nitide
+                });
+
+                // 3. Gestiamo i formati immagine (PNG / JPG)
+                if (formato === 'png' || formato === 'jpg') {
+                    const mimeType = formato === 'png' ? 'image/png' : 'image/jpeg';
+                    const dataUrl = canvas.toDataURL(mimeType, formato === 'jpg' ? 0.9 : 1.0);
+                    
+                    const link = document.createElement('a');
+                    link.download = `Estratto_Mappa_Puglia.${formato}`;
+                    link.href = dataUrl;
+                    link.click();
+                } 
+                // 4. Gestiamo il formato Documento (PDF)
+                else if (formato === 'pdf') {
+                    const { jsPDF } = window.jspdf;
+                    
+                    // Decidiamo se il foglio A4 deve essere in verticale o orizzontale in base al tuo schermo
+                    const orientation = canvas.width > canvas.height ? 'l' : 'p';
+                    const pdf = new jsPDF(orientation, 'mm', 'a4');
+                    
+                    const pdfWidth = pdf.internal.pageSize.getWidth();
+                    const pdfHeight = pdf.internal.pageSize.getHeight();
+                    
+                    // Calcoliamo le proporzioni per far entrare la mappa perfettamente nel foglio
+                    const canvasRatio = canvas.width / canvas.height;
+                    const pdfRatio = pdfWidth / pdfHeight;
+                    
+                    let finalWidth = pdfWidth;
+                    let finalHeight = pdfHeight;
+                    
+                    if (canvasRatio > pdfRatio) {
+                        finalHeight = pdfWidth / canvasRatio;
+                    } else {
+                        finalWidth = pdfHeight * canvasRatio;
+                    }
+                    
+                    // Comprimiamo leggermente in JPG per non fare un PDF da 50 mega
+                    const imgData = canvas.toDataURL('image/jpeg', 0.85);
+                    pdf.addImage(imgData, 'JPEG', 0, 0, finalWidth, finalHeight);
+                    pdf.save(`Estratto_Mappa_Puglia.pdf`);
+                }
+            } catch (error) {
+                console.error("Errore durante l'esportazione:", error);
+                alert("Si è verificato un errore durante la creazione del file. Controlla la console.");
+            }
+            
+            // 5. Spegniamo la schermata di caricamento
+            loadingOverlay.style.display = 'none';
+            loadingDesc.innerText = "Attendere prego...";
+        }
