@@ -117,9 +117,10 @@
     </div>
 
     <div class="zoom-tools">
-        <button onclick="map.zoomIn()" title="Ingrandisci">🔍➕</button>
-        <button onclick="map.zoomOut()" title="Rimpicciolisci">🔍➖</button>
-        <button onclick="map.setView([41.0000, 16.5000], 8)" title="Torna alla Puglia">🏠</button>
+        <!-- AGGIORNATO: Ora puntano a funzioni esterne per evitare conflitti! -->
+        <button onclick="faiZoomIn()" title="Ingrandisci">🔍➕</button>
+        <button onclick="faiZoomOut()" title="Rimpicciolisci">🔍➖</button>
+        <button onclick="tornaAllaPuglia()" title="Torna alla Puglia">🏠</button>
         <button onclick="toggleBoxZoom()" id="toggleBoxZoomBtn" title="Zoom per Area (Seleziona un rettangolo)">🔲</button>
     </div>
 
@@ -221,7 +222,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Turf.js/6.5.0/turf.min.js"></script>
     
     <script>
-        const APP_VERSION = "3.5"; 
+        const APP_VERSION = "3.6"; 
 
         const PACCHETTO_DATI_PREDEFINITO = [
             { url: './dati_pptr/piani_adeguati_conformi_2026.zip', nome: 'Piani adeguati o conformi (Giu 2026)' },
@@ -262,10 +263,16 @@
             zoomControl: false, preserveDrawingBuffer: true, doubleClickZoom: false, tap: false, preferCanvas: false, maxZoom: 25 
         }).setView([41.0000, 16.5000], 8);
 
+        // --- FUNZIONI DI ZOOM AGGIORNATE ---
+        function faiZoomIn() { map.zoomIn(); }
+        function faiZoomOut() { map.zoomOut(); }
+        function tornaAllaPuglia() { map.setView([41.0000, 16.5000], 8); }
+
         L.control.scale({ imperial: false, position: 'bottomleft' }).addTo(map);
 
+        // --- SELETTORE SCALA SPOSTATO IN BASSO A DESTRA ---
         const ScaleSelectorControl = L.Control.extend({
-            options: { position: 'topright' }, 
+            options: { position: 'bottomright' }, 
             
             onAdd: function (map) {
                 const div = L.DomUtil.create('div', 'leaflet-bar leaflet-control');
