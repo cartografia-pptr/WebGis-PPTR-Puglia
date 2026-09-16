@@ -116,12 +116,12 @@
         <p>Ricerca Vettoriale Combinata & Export Cartografico</p>
     </div>
 
-    <div class="zoom-tools">
-        <!-- PULITI DAGLI ONCLICK: Ora usano l'ID per connettersi in modo blindato a JavaScript -->
-        <button id="btnZoomIn" title="Ingrandisci">🔍➕</button>
-        <button id="btnZoomOut" title="Rimpicciolisci">🔍➖</button>
-        <button id="btnHome" title="Torna alla Puglia">🏠</button>
-        <button onclick="toggleBoxZoom()" id="toggleBoxZoomBtn" title="Zoom per Area (Seleziona un rettangolo)">🔲</button>
+    <!-- PANNELLO BOTTONI ZOOM BLINDATO -->
+    <div class="zoom-tools" id="zoomToolsPanel">
+        <button type="button" onclick="window.faiZoomIn()" title="Ingrandisci">🔍➕</button>
+        <button type="button" onclick="window.faiZoomOut()" title="Rimpicciolisci">🔍➖</button>
+        <button type="button" onclick="window.tornaAllaPuglia()" title="Torna alla Puglia">🏠</button>
+        <button type="button" onclick="window.toggleBoxZoom()" id="toggleBoxZoomBtn" title="Zoom per Area (Seleziona un rettangolo)">🔲</button>
     </div>
 
     <button id="openPanelBtn" onclick="toggleMainPanel()">⚙️ Apri Strumenti</button>
@@ -222,7 +222,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Turf.js/6.5.0/turf.min.js"></script>
     
     <script>
-        const APP_VERSION = "3.7"; 
+        const APP_VERSION = "3.8"; 
 
         const PACCHETTO_DATI_PREDEFINITO = [
             { url: './dati_pptr/piani_adeguati_conformi_2026.zip', nome: 'Piani adeguati o conformi (Giu 2026)' },
@@ -263,10 +263,30 @@
             zoomControl: false, preserveDrawingBuffer: true, doubleClickZoom: false, tap: false, preferCanvas: false, maxZoom: 25 
         }).setView([41.0000, 16.5000], 8);
 
-        // --- COLLEGAMENTO BLINDATO DEI TASTI ZOOM ---
-        document.getElementById('btnZoomIn').addEventListener('click', function(e) { L.DomEvent.stopPropagation(e); map.zoomIn(); });
-        document.getElementById('btnZoomOut').addEventListener('click', function(e) { L.DomEvent.stopPropagation(e); map.zoomOut(); });
-        document.getElementById('btnHome').addEventListener('click', function(e) { L.DomEvent.stopPropagation(e); map.setView([41.0000, 16.5000], 8); });
+        // --- RISOLTO IL CONFLITTO DEI BOTTONI ZOOM E RESET (Puglia / Box Zoom) ---
+        // Isoliamo i click sul pannello dei bottoni per evitare che la mappa sotto li rubi
+        const zoomPanel = document.getElementById('zoomToolsPanel');
+        if(zoomPanel) L.DomEvent.disableClickPropagation(zoomPanel);
+
+        // Creiamo funzioni esplicite nella finestra che bypassano i bug HTML
+        window.faiZoomIn = function() { map.zoomIn(); };
+        window.faiZoomOut = function() { map.zoomOut(); };
+        window.tornaAllaPuglia = function() { map.setView([41.0000, 16.5000], 8); };
+        
+        let boxZoomActive = false; let startPoint = null;
+        let zoomBox = document.createElement('div'); zoomBox.style.cssText = "position:absolute; border:2px solid #2980b9; background:rgba(52,152,219,0.3); z-index:9999; pointer-events:none; display:none;";
+        document.getElementById('map').appendChild(zoomBox);
+
+        window.toggleBoxZoom = function() {
+            boxZoomActive = !boxZoomActive; const btn = document.getElementById('toggleBoxZoomBtn');
+            if (boxZoomActive) { btn.style.background = '#2980b9'; btn.style.color = 'white'; map.dragging.disable(); document.getElementById('map').style.cursor = 'crosshair'; } 
+            else { btn.style.background = 'white'; btn.style.color = '#2c3e50'; map.dragging.enable(); document.getElementById('map').style.cursor = 'grab'; zoomBox.style.display = 'none'; startPoint = null; }
+        };
+
+        map.on('mousedown', function(e) { if (!boxZoomActive) return; startPoint = e.containerPoint; zoomBox.style.left = startPoint.x + 'px'; zoomBox.style.top = startPoint.y + 'px'; zoomBox.style.width = '0px'; zoomBox.style.height = '0px'; zoomBox.style.display = 'block'; });
+        map.on('mousemove', function(e) { if (!boxZoomActive || !startPoint) return; let currentPoint = e.containerPoint; let bounds = L.bounds(startPoint, currentPoint); zoomBox.style.left = bounds.min.x + 'px'; zoomBox.style.top = bounds.min.y + 'px'; zoomBox.style.width = (bounds.max.x - bounds.min.x) + 'px'; zoomBox.style.height = (bounds.max.y - bounds.min.y) + 'px'; });
+        map.on('mouseup', function(e) { if (!boxZoomActive || !startPoint) return; let endPoint = e.containerPoint; let pixelBounds = L.bounds(startPoint, endPoint); if (pixelBounds.getSize().x > 10 && pixelBounds.getSize().y > 10) { let latLngBounds = L.latLngBounds(map.containerPointToLatLng(pixelBounds.min), map.containerPointToLatLng(pixelBounds.max)); map.fitBounds(latLngBounds); } window.toggleBoxZoom(); });
+        // --------------------------------------------------------------------------
 
         L.control.scale({ imperial: false, position: 'bottomleft' }).addTo(map);
 
@@ -570,20 +590,6 @@
             layer.on('load', function() { document.body.style.cursor = 'default'; });
             layer.on('tileerror', function() { document.body.style.cursor = 'default'; });
         }
-
-        let boxZoomActive = false; let startPoint = null;
-        let zoomBox = document.createElement('div'); zoomBox.style.cssText = "position:absolute; border:2px solid #2980b9; background:rgba(52,152,219,0.3); z-index:9999; pointer-events:none; display:none;";
-        document.getElementById('map').appendChild(zoomBox);
-
-        function toggleBoxZoom() {
-            boxZoomActive = !boxZoomActive; const btn = document.getElementById('toggleBoxZoomBtn');
-            if (boxZoomActive) { btn.style.background = '#2980b9'; btn.style.color = 'white'; map.dragging.disable(); document.getElementById('map').style.cursor = 'crosshair'; } 
-            else { btn.style.background = 'white'; btn.style.color = '#2c3e50'; map.dragging.enable(); document.getElementById('map').style.cursor = 'grab'; zoomBox.style.display = 'none'; startPoint = null; }
-        }
-
-        map.on('mousedown', function(e) { if (!boxZoomActive) return; startPoint = e.containerPoint; zoomBox.style.left = startPoint.x + 'px'; zoomBox.style.top = startPoint.y + 'px'; zoomBox.style.width = '0px'; zoomBox.style.height = '0px'; zoomBox.style.display = 'block'; });
-        map.on('mousemove', function(e) { if (!boxZoomActive || !startPoint) return; let currentPoint = e.containerPoint; let bounds = L.bounds(startPoint, currentPoint); zoomBox.style.left = bounds.min.x + 'px'; zoomBox.style.top = bounds.min.y + 'px'; zoomBox.style.width = (bounds.max.x - bounds.min.x) + 'px'; zoomBox.style.height = (bounds.max.y - bounds.min.y) + 'px'; });
-        map.on('mouseup', function(e) { if (!boxZoomActive || !startPoint) return; let endPoint = e.containerPoint; let pixelBounds = L.bounds(startPoint, endPoint); if (pixelBounds.getSize().x > 10 && pixelBounds.getSize().y > 10) { let latLngBounds = L.latLngBounds(map.containerPointToLatLng(pixelBounds.min), map.containerPointToLatLng(pixelBounds.max)); map.fitBounds(latLngBounds); } toggleBoxZoom(); });
 
         window.onload = async function() {
             document.getElementById('loadingOverlay').style.display = 'flex';
