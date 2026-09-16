@@ -117,10 +117,10 @@
     </div>
 
     <div class="zoom-tools">
-        <!-- AGGIORNATO: Ora puntano a funzioni esterne per evitare conflitti! -->
-        <button onclick="faiZoomIn()" title="Ingrandisci">🔍➕</button>
-        <button onclick="faiZoomOut()" title="Rimpicciolisci">🔍➖</button>
-        <button onclick="tornaAllaPuglia()" title="Torna alla Puglia">🏠</button>
+        <!-- PULITI DAGLI ONCLICK: Ora usano l'ID per connettersi in modo blindato a JavaScript -->
+        <button id="btnZoomIn" title="Ingrandisci">🔍➕</button>
+        <button id="btnZoomOut" title="Rimpicciolisci">🔍➖</button>
+        <button id="btnHome" title="Torna alla Puglia">🏠</button>
         <button onclick="toggleBoxZoom()" id="toggleBoxZoomBtn" title="Zoom per Area (Seleziona un rettangolo)">🔲</button>
     </div>
 
@@ -222,7 +222,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Turf.js/6.5.0/turf.min.js"></script>
     
     <script>
-        const APP_VERSION = "3.6"; 
+        const APP_VERSION = "3.7"; 
 
         const PACCHETTO_DATI_PREDEFINITO = [
             { url: './dati_pptr/piani_adeguati_conformi_2026.zip', nome: 'Piani adeguati o conformi (Giu 2026)' },
@@ -263,14 +263,13 @@
             zoomControl: false, preserveDrawingBuffer: true, doubleClickZoom: false, tap: false, preferCanvas: false, maxZoom: 25 
         }).setView([41.0000, 16.5000], 8);
 
-        // --- FUNZIONI DI ZOOM AGGIORNATE ---
-        function faiZoomIn() { map.zoomIn(); }
-        function faiZoomOut() { map.zoomOut(); }
-        function tornaAllaPuglia() { map.setView([41.0000, 16.5000], 8); }
+        // --- COLLEGAMENTO BLINDATO DEI TASTI ZOOM ---
+        document.getElementById('btnZoomIn').addEventListener('click', function(e) { L.DomEvent.stopPropagation(e); map.zoomIn(); });
+        document.getElementById('btnZoomOut').addEventListener('click', function(e) { L.DomEvent.stopPropagation(e); map.zoomOut(); });
+        document.getElementById('btnHome').addEventListener('click', function(e) { L.DomEvent.stopPropagation(e); map.setView([41.0000, 16.5000], 8); });
 
         L.control.scale({ imperial: false, position: 'bottomleft' }).addTo(map);
 
-        // --- SELETTORE SCALA SPOSTATO IN BASSO A DESTRA ---
         const ScaleSelectorControl = L.Control.extend({
             options: { position: 'bottomright' }, 
             
