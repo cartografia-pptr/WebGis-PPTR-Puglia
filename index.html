@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>WebGis PPTR Puglia</title>
     
-    <!-- META TAG ANTI-CACHE -->
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
     <meta http-equiv="Pragma" content="no-cache" />
     <meta http-equiv="Expires" content="0" />
@@ -60,12 +59,13 @@
         .layer-item { background: #f8f9fa; border: 1px solid #ddd; padding: 6px; border-radius: 4px; display: flex; flex-direction: column; gap: 4px; }
         .layer-group { background: #eef4f8; border: 1px solid #bce0f2; }
         .layer-item-header { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
-        .layer-item-header label { font-size: 12px; font-weight: bold; cursor: pointer; flex-grow: 1; display: flex; align-items: center; gap: 5px; white-space: nowrap;}
+        
+        .layer-item-header label { font-size: 12px; font-weight: bold; cursor: pointer; flex-grow: 1; display: flex; align-items: flex-start; gap: 5px; min-width: 0; }
         
         .color-picker {
             -webkit-appearance: none; -moz-appearance: none; appearance: none;
             width: 16px; height: 16px; padding: 0; border: 1px solid #7f8c8d; border-radius: 3px;
-            cursor: pointer; margin-right: 2px; flex-shrink: 0;
+            cursor: pointer; margin-right: 2px; flex-shrink: 0; margin-top: 1px;
         }
         .color-picker::-webkit-color-swatch-wrapper { padding: 0; }
         .color-picker::-webkit-color-swatch { border: none; border-radius: 2px; }
@@ -116,11 +116,12 @@
         <p>Ricerca Vettoriale Combinata & Export Cartografico</p>
     </div>
 
-    <div class="zoom-tools">
-        <button onclick="map.zoomIn()" title="Ingrandisci">🔍➕</button>
-        <button onclick="map.zoomOut()" title="Rimpicciolisci">🔍➖</button>
-        <button onclick="map.setView([41.0000, 16.5000], 8)" title="Torna alla Puglia">🏠</button>
-        <button onclick="toggleBoxZoom()" id="toggleBoxZoomBtn" title="Zoom per Area (Seleziona un rettangolo)">🔲</button>
+    <!-- PANNELLO BOTTONI ZOOM BLINDATO -->
+    <div class="zoom-tools" id="zoomToolsPanel">
+        <button type="button" onclick="window.faiZoomIn()" title="Ingrandisci">🔍➕</button>
+        <button type="button" onclick="window.faiZoomOut()" title="Rimpicciolisci">🔍➖</button>
+        <button type="button" onclick="window.tornaAllaPuglia()" title="Torna alla Puglia">🏠</button>
+        <button type="button" onclick="window.toggleBoxZoom()" id="toggleBoxZoomBtn" title="Zoom per Area (Seleziona un rettangolo)">🔲</button>
     </div>
 
     <button id="openPanelBtn" onclick="toggleMainPanel()">⚙️ Apri Strumenti</button>
@@ -196,7 +197,6 @@
                 <button class="btn-custom btn-reset" onclick="resetRicerca()">Azzera</button>
             </div>
         </div>
-
         <div style="margin-top: 5px;">
             <h3 style="color: #8e44ad; margin-bottom: 5px; font-size: 13px;">📸 Esporta Cartografia</h3>
             <div id="exportContainer" style="display: flex; gap: 5px;">
@@ -222,21 +222,21 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Turf.js/6.5.0/turf.min.js"></script>
     
     <script>
-        const APP_VERSION = "1.7"; 
+        const APP_VERSION = "4.0"; 
 
         const PACCHETTO_DATI_PREDEFINITO = [
-    { url: './dati_pptr/6.1.1_GEOMORFOLOGICHE.zip', nome: '6.1.1 Geomorfologiche' },
-    { url: './dati_pptr/6.1.2_IDROLOGICHE.zip', nome: '6.1.2 Idrologiche' },
-    { url: './dati_pptr/6.2.1_BOTANICO_VEGETAZIONALI.zip', nome: '6.2.1 Botanico Vegetazionali' },
-    { url: './dati_pptr/6.2.2_AREE_PROTETTE.zip', nome: '6.2.2 Aree Protette' },
-    { url: './dati_pptr/6.3.1_CULTURALI.zip', nome: '6.3.1 Culturali' },
-    { url: './dati_pptr/6.3.2_PERCETTIVE.zip', nome: '6.3.2 Percettive' },
-    { url: './dati_pptr/CTR Confini Comunali.zip', nome: 'CTR Confini Comunali' },
-    { url: './dati_pptr/piani_adeguati_conformi_2026.zip', nome: 'Piani adeguati o conformi (Giu 2026)' },
-    { url: './dati_pptr/art_142_co_2_vigente_giu_2026.zip', nome: 'Art. 142 Co. 2 Vigente' },
-    { url: './dati_pptr/Eolico Puglia.zip', nome: 'Eolico Puglia' },
-    { url: './dati_pptr/Fotovoltaico_WGS84_33NORD.zip', nome: 'Fotovoltaico Puglia' }
-];
+            { url: './dati_pptr/piani_adeguati_conformi_2026.zip', nome: 'Piani adeguati o conformi (Giu 2026)' },
+            { url: './dati_pptr/art_142_co_2_vigente_giu_2026.zip', nome: 'Art. 142 Co. 2 Vigente' },
+            { url: './dati_pptr/Fotovoltaico_WGS84_33NORD.zip', nome: 'Fotovoltaico Puglia' },
+            { url: './dati_pptr/Eolico Puglia.zip', nome: 'Eolico Puglia' },
+            { url: './dati_pptr/CTR Confini Comunali.zip', nome: 'CTR Confini Comunali' },
+            { url: './dati_pptr/6_3_2_PERCETTIVE.zip', nome: '6.3.2 Percettive' },
+            { url: './dati_pptr/6.3.1_CULTURALI.zip', nome: '6.3.1 Culturali' },
+            { url: './dati_pptr/6.2.2_AREE_PROTETTE.zip', nome: '6.2.2 Aree Protette' },
+            { url: './dati_pptr/6.2.1_BOTANICO_VEGETAZIONALI.zip', nome: '6.2.1 Botanico Vegetazionali' },
+            { url: './dati_pptr/6.1.2_IDROLOGICHE.zip', nome: '6.1.2 Idrologiche' },
+            { url: './dati_pptr/6.1.1_GEOMORFOLOGICHE.zip', nome: '6.1.1 Geomorfologiche' }
+        ];
 
         window.appReady = false; 
 
@@ -263,9 +263,75 @@
             zoomControl: false, preserveDrawingBuffer: true, doubleClickZoom: false, tap: false, preferCanvas: false, maxZoom: 25 
         }).setView([41.0000, 16.5000], 8);
 
+        // --- RISOLTO IL CONFLITTO DEI BOTTONI ZOOM E RESET (Puglia / Box Zoom) ---
+        // Isoliamo i click sul pannello dei bottoni per evitare che la mappa sotto li rubi
+        const zoomPanel = document.getElementById('zoomToolsPanel');
+        if(zoomPanel) L.DomEvent.disableClickPropagation(zoomPanel);
+
+        // Creiamo funzioni esplicite nella finestra che bypassano i bug HTML
+        window.faiZoomIn = function() { map.zoomIn(); };
+        window.faiZoomOut = function() { map.zoomOut(); };
+        window.tornaAllaPuglia = function() { map.setView([41.0000, 16.5000], 8); };
+        
+        let boxZoomActive = false; let startPoint = null;
+        let zoomBox = document.createElement('div'); zoomBox.style.cssText = "position:absolute; border:2px solid #2980b9; background:rgba(52,152,219,0.3); z-index:9999; pointer-events:none; display:none;";
+        document.getElementById('map').appendChild(zoomBox);
+
+        window.toggleBoxZoom = function() {
+            boxZoomActive = !boxZoomActive; const btn = document.getElementById('toggleBoxZoomBtn');
+            if (boxZoomActive) { btn.style.background = '#2980b9'; btn.style.color = 'white'; map.dragging.disable(); document.getElementById('map').style.cursor = 'crosshair'; } 
+            else { btn.style.background = 'white'; btn.style.color = '#2c3e50'; map.dragging.enable(); document.getElementById('map').style.cursor = 'grab'; zoomBox.style.display = 'none'; startPoint = null; }
+        };
+
+        map.on('mousedown', function(e) { if (!boxZoomActive) return; startPoint = e.containerPoint; zoomBox.style.left = startPoint.x + 'px'; zoomBox.style.top = startPoint.y + 'px'; zoomBox.style.width = '0px'; zoomBox.style.height = '0px'; zoomBox.style.display = 'block'; });
+        map.on('mousemove', function(e) { if (!boxZoomActive || !startPoint) return; let currentPoint = e.containerPoint; let bounds = L.bounds(startPoint, currentPoint); zoomBox.style.left = bounds.min.x + 'px'; zoomBox.style.top = bounds.min.y + 'px'; zoomBox.style.width = (bounds.max.x - bounds.min.x) + 'px'; zoomBox.style.height = (bounds.max.y - bounds.min.y) + 'px'; });
+        map.on('mouseup', function(e) { if (!boxZoomActive || !startPoint) return; let endPoint = e.containerPoint; let pixelBounds = L.bounds(startPoint, endPoint); if (pixelBounds.getSize().x > 10 && pixelBounds.getSize().y > 10) { let latLngBounds = L.latLngBounds(map.containerPointToLatLng(pixelBounds.min), map.containerPointToLatLng(pixelBounds.max)); map.fitBounds(latLngBounds); } window.toggleBoxZoom(); });
+        // --------------------------------------------------------------------------
+
         L.control.scale({ imperial: false, position: 'bottomleft' }).addTo(map);
 
-        // --- INIEZIONE INIZIALE PATTERN SVG ---
+        const ScaleSelectorControl = L.Control.extend({
+            options: { position: 'bottomright' }, 
+            
+            onAdd: function (map) {
+                const div = L.DomUtil.create('div', 'leaflet-bar leaflet-control');
+                div.style.backgroundColor = 'white';
+                div.style.padding = '5px 10px';
+                div.style.cursor = 'pointer';
+                div.style.fontFamily = 'Arial, sans-serif';
+                div.style.fontSize = '13px';
+
+                div.innerHTML = `
+                    <label for="scaleSelect" style="font-weight: bold; margin-right: 5px;">Scala ≈</label>
+                    <select id="scaleSelect" style="border: none; outline: none; cursor: pointer; font-size: 13px;">
+                        <option value="">Seleziona...</option>
+                        <option value="18">1:2.000</option>
+                        <option value="16">1:5.000</option>
+                        <option value="15">1:10.000</option>
+                        <option value="14">1:25.000</option>
+                        <option value="13">1:50.000</option>
+                        <option value="12">1:100.000</option>
+                    </select>
+                `;
+
+                L.DomEvent.disableClickPropagation(div);
+
+                setTimeout(() => {
+                    const selectElement = document.getElementById('scaleSelect');
+                    selectElement.addEventListener('change', function(e) {
+                        if(e.target.value) {
+                            map.setZoom(parseInt(e.target.value));
+                            e.target.value = ""; 
+                        }
+                    });
+                }, 100);
+
+                return div;
+            }
+        });
+
+        map.addControl(new ScaleSelectorControl());
+
         function generaPatternSVG() {
             const svgNamespace = "http://www.w3.org/2000/svg";
             const svgContainer = map._container.querySelector('svg') || document.createElementNS(svgNamespace, "svg");
@@ -299,7 +365,6 @@
         }
         map.on('layeradd', function() { setTimeout(generaPatternSVG, 100); });
 
-        // --- 1. PATCH PER IL BUG DI LEAFLET-MEASURE ---
         L.Control.Measure.include({
             _setCaptureMarkerIcon: function () {
                 this._captureMarker.options.autoPanOnFocus = false;
@@ -307,7 +372,6 @@
             }
         });
 
-        // --- 2. CONFIGURAZIONE STRUMENTO MISURA ---
         const measureControl = new L.Control.Measure({
             position: 'topleft', primaryLengthUnit: 'meters', secondaryLengthUnit: 'kilometers', primaryAreaUnit: 'sqmeters', secondaryAreaUnit: 'hectares', activeColor: '#e67e22', completedColor: '#27ae60'
         });
@@ -321,8 +385,6 @@
 
         const mioCatastoLocale = L.tileLayer('./catasto_tasselli/{z}/{x}/{y}.png', { minZoom: 14, maxNativeZoom: 21, maxZoom: 25, crossOrigin: true, attribution: '© Elaborazione Interna Catasto' });
         const baseMapOSM = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxNativeZoom: 19, maxZoom: 25, crossOrigin: true });
-        
-        // --- LIVELLO BASE STRUTTURATO: OPENTOPO MAP ---
         const openTopoMap = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', { maxNativeZoom: 15, maxZoom: 25, crossOrigin: true, attribution: '© OpenTopoMap, SRTM' });
 
         const googleSat = L.tileLayer('https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', { maxZoom: 20, attribution: '© Google' });
@@ -335,6 +397,7 @@
 
         const igmLayer = pmtiles.leafletRasterLayer(new pmtiles.PMTiles('https://pub-c033353f97014eaea6e433680b0aaba6.r2.dev/IGM_25k_Puglia.pmtiles'), { maxNativeZoom: 16, maxZoom: 25, attribution: '© IGM 25k Puglia' });
         const ctrLayer = pmtiles.leafletRasterLayer(new pmtiles.PMTiles('https://pub-c033353f97014eaea6e433680b0aaba6.r2.dev/PUGLIA_CTR_2006.pmtiles'), { maxNativeZoom: 16, maxZoom: 25, attribution: '© CTR Puglia 2006' });
+        const orto1988 = pmtiles.leafletRasterLayer(new pmtiles.PMTiles('https://pub-c033353f97014eaea6e433680b0aaba6.r2.dev/Geoportale_ORTO_1988.pmtiles'), { maxNativeZoom: 16, maxZoom: 25, attribution: '© Orto 1988 geoportale' });
 
         let rasterLayers = [
             { id: 'osm', name: '🗺️ Mappa Strade (OSM)', layer: baseMapOSM, active: true, opacity: 1 },
@@ -347,7 +410,8 @@
             { id: 'orto23', name: '📷 Ortofoto Puglia 2023', layer: orto2023, active: false, opacity: 1 },
             { id: 'orto19', name: '📷 Ortofoto Puglia 2019', layer: orto2019, active: false, opacity: 1 },
             { id: 'orto13', name: '📷 Ortofoto Puglia 2013', layer: orto2013, active: false, opacity: 1 },
-            { id: 'orto06', name: '📷 Ortofoto Puglia 2006', layer: orto06, active: false, opacity: 1 }
+            { id: 'orto06', name: '📷 Ortofoto Puglia 2006', layer: orto06, active: false, opacity: 1 },
+            { id: 'orto1988', name: '📷 Ortofoto Geoportale 1988', layer: orto1988, active: false, opacity: 1 }
         ];
 
         let vectorLayers = []; 
@@ -399,14 +463,14 @@
                         itemsHtml += `
                             <div class="layer-item" style="background:#fff; border-color:#eee; padding:4px;">
                                 <div class="layer-item-header">
-                                    <label style="font-size:11px; font-weight:normal; align-items:center;">
+                                    <label style="font-size:11px; font-weight:normal; display: flex; align-items: flex-start; gap: 5px; min-width: 0; flex-grow: 1; cursor: pointer;">
                                         <input type="checkbox" id="chk_vec_${i}_${j}" onchange="toggleVectorItem(${i}, ${j}, this.checked)" ${item.active?'checked':''}>
                                         <input type="color" class="color-picker" value="${item.color}" onchange="changeVectorColor(${i}, ${j}, this.value)">
-                                        <span style="white-space: nowrap; max-width:110px; overflow:hidden; text-overflow:ellipsis;" title="${item.name}">${item.name}</span>
+                                        <span style="white-space: normal; word-break: break-word; min-width: 0; flex: 1; line-height: 1.2;" title="${item.name}">${item.name}</span>
                                     </label>
                                     <div style="white-space: nowrap; flex-shrink: 0;">
-                                        <button class="btn-order" onclick="moveVectorItem(${i}, ${j}, 1)" ${j === v.items.length - 1 ? 'disabled' : ''}>▲</button>
-                                        <button class="btn-order" onclick="moveVectorItem(${i}, ${j}, -1)" ${j === 0 ? 'disabled' : ''}>▼</button>
+                                        <button class="btn-order" onclick="moveVectorItem(${i}, ${j}, -1)" ${j === 0 ? 'disabled' : ''}>▲</button>
+                                        <button class="btn-order" onclick="moveVectorItem(${i}, ${j}, 1)" ${j === v.items.length - 1 ? 'disabled' : ''}>▼</button>
                                     </div>
                                 </div>
                                 <div class="layer-controls"><span style="font-size:10px;">Opacità:</span><input type="range" min="0" max="1" step="0.1" value="${item.opacity}" oninput="opacityVectorItem(${i}, ${j}, this.value)"></div>
@@ -455,17 +519,25 @@
             let patternType = item.pattern || 'pieno';
 
             item.layer.eachLayer(function(l) {
+                let isLine = false;
+                if (l.feature && l.feature.geometry && l.feature.geometry.type) {
+                    isLine = l.feature.geometry.type.includes('Line');
+                }
+                let actualFillOp = isLine ? 0 : fillOp;
+
                 if (l instanceof L.CircleMarker) {
-                    l.setStyle({ fillColor: item.color, color: "#333", weight: item.border !== false ? 1 : 0, opacity: borderOp, fillOpacity: item.fill !== false ? item.opacity * 0.8 : 0 });
+                    l.setStyle({ fillColor: item.color, color: "#333", weight: item.border !== false ? 1 : 0, opacity: borderOp, fillOpacity: actualFillOp > 0 ? item.opacity * 0.8 : 0 });
                 } else if (l.setStyle) {
-                    l.setStyle({ color: item.color, weight: weight, opacity: borderOp, fillOpacity: fillOp, fillColor: item.color });
+                    l.setStyle({ color: item.color, weight: weight, opacity: borderOp, fillOpacity: actualFillOp, fillColor: item.color });
                     
-                    if (l._path && item.fill !== false) {
+                    if (l._path && actualFillOp > 0) {
                         if (patternType === 'linee') { l._path.setAttribute('fill', 'url(#pat-lines)'); document.getElementById('pat-lines').querySelector('line').setAttribute('stroke', item.color); }
                         else if (patternType === 'griglia') { l._path.setAttribute('fill', 'url(#pat-grid)'); document.getElementById('pat-grid').querySelector('path').setAttribute('stroke', item.color); }
                         else if (patternType === 'punti') { l._path.setAttribute('fill', 'url(#pat-dots)'); document.getElementById('pat-dots').querySelector('circle').setAttribute('fill', item.color); }
                         else if (patternType === 'mattoni') { l._path.setAttribute('fill', 'url(#pat-bricks)'); document.getElementById('pat-bricks').querySelector('path').setAttribute('stroke', item.color); }
                         else { l._path.setAttribute('fill', item.color); }
+                    } else if (l._path && actualFillOp === 0) {
+                        l._path.setAttribute('fill', 'none'); 
                     }
                 }
             });
@@ -519,56 +591,40 @@
             layer.on('tileerror', function() { document.body.style.cursor = 'default'; });
         }
 
-        let boxZoomActive = false; let startPoint = null;
-        let zoomBox = document.createElement('div'); zoomBox.style.cssText = "position:absolute; border:2px solid #2980b9; background:rgba(52,152,219,0.3); z-index:9999; pointer-events:none; display:none;";
-        document.getElementById('map').appendChild(zoomBox);
-
-        function toggleBoxZoom() {
-            boxZoomActive = !boxZoomActive; const btn = document.getElementById('toggleBoxZoomBtn');
-            if (boxZoomActive) { btn.style.background = '#2980b9'; btn.style.color = 'white'; map.dragging.disable(); document.getElementById('map').style.cursor = 'crosshair'; } 
-            else { btn.style.background = 'white'; btn.style.color = '#2c3e50'; map.dragging.enable(); document.getElementById('map').style.cursor = 'grab'; zoomBox.style.display = 'none'; startPoint = null; }
-        }
-
-        map.on('mousedown', function(e) { if (!boxZoomActive) return; startPoint = e.containerPoint; zoomBox.style.left = startPoint.x + 'px'; zoomBox.style.top = startPoint.y + 'px'; zoomBox.style.width = '0px'; zoomBox.style.height = '0px'; zoomBox.style.display = 'block'; });
-        map.on('mousemove', function(e) { if (!boxZoomActive || !startPoint) return; let currentPoint = e.containerPoint; let bounds = L.bounds(startPoint, currentPoint); zoomBox.style.left = bounds.min.x + 'px'; zoomBox.style.top = bounds.min.y + 'px'; zoomBox.style.width = (bounds.max.x - bounds.min.x) + 'px'; zoomBox.style.height = (bounds.max.y - bounds.min.y) + 'px'; });
-        map.on('mouseup', function(e) { if (!boxZoomActive || !startPoint) return; let endPoint = e.containerPoint; let pixelBounds = L.bounds(startPoint, endPoint); if (pixelBounds.getSize().x > 10 && pixelBounds.getSize().y > 10) { let latLngBounds = L.latLngBounds(map.containerPointToLatLng(pixelBounds.min), map.containerPointToLatLng(pixelBounds.max)); map.fitBounds(latLngBounds); } toggleBoxZoom(); });
-
         window.onload = async function() {
             document.getElementById('loadingOverlay').style.display = 'flex';
             try {
                 let tempVectorLayers = []; let tempWmsLayers = [];
                 const savedVersion = await localforage.getItem('app_version');
+                const keysInDb = await localforage.keys();
+                let installedDefaultsCount = keysInDb.filter(k => k.startsWith('pptr_fisso_')).length;
+                
+                let needsInstall = (savedVersion !== APP_VERSION) || (installedDefaultsCount < PACCHETTO_DATI_PREDEFINITO.length);
+
                 if (savedVersion !== APP_VERSION) {
-                    document.getElementById('loadingDesc').innerText = "Installazione Aggiornamento v1.6 in corso...";
-                    const keys = await localforage.keys();
-                    for (let k of keys) { if (k.startsWith('pptr_fisso_') || (!savedVersion && k.startsWith('zip_'))) await localforage.removeItem(k); }
+                    document.getElementById('loadingDesc').innerText = "Installazione Aggiornamento v" + APP_VERSION + " in corso...";
+                    for (let k of keysInDb) { if (k.startsWith('pptr_fisso_') || (!savedVersion && k.startsWith('zip_'))) await localforage.removeItem(k); }
+                }
+
+                if (needsInstall && PACCHETTO_DATI_PREDEFINITO.length > 0) {
+                    for (let file of PACCHETTO_DATI_PREDEFINITO) {
+                        try {
+                            console.log("⏳ Scaricamento: " + file.nome);
+                            const response = await fetch(file.url);
+                            if (response.ok) { 
+                                const buffer = await response.arrayBuffer(); 
+                                const dbKey = 'pptr_fisso_' + file.nome.replace(/\s+/g, '_'); 
+                                await elaboraZipDati(buffer, file.nome, dbKey, true, tempVectorLayers); 
+                                console.log("✅ Fatto: " + file.nome);
+                            } else {
+                                console.error("❌ FILE NON TROVATO (404): " + file.url);
+                            }
+                        } catch (e) { 
+                            console.error("🚨 ERRORE CRITICO su " + file.nome + ":", e);
+                        }
+                    }
                     await localforage.setItem('app_version', APP_VERSION);
                 }
-
-                let needsInstall = false;
-                if (PACCHETTO_DATI_PREDEFINITO.length > 0) {
-                    const firstLayerKey = 'pptr_fisso_' + PACCHETTO_DATI_PREDEFINITO[0].nome.replace(/\s+/g, '_');
-                    const checkFirst = await localforage.getItem(firstLayerKey); if (!checkFirst) needsInstall = true;
-                }
-
-               if (needsInstall && PACCHETTO_DATI_PREDEFINITO.length > 0) {
-            for (let file of PACCHETTO_DATI_PREDEFINITO) {
-                try {
-                    console.log("⏳ Scaricamento: " + file.nome);
-                    const response = await fetch(file.url);
-                    if (response.ok) { 
-                        const buffer = await response.arrayBuffer(); 
-                        const dbKey = 'pptr_fisso_' + file.nome.replace(/\s+/g, '_'); 
-                        await elaboraZipDati(buffer, file.nome, dbKey, true, tempVectorLayers); 
-                        console.log("✅ Fatto: " + file.nome);
-                    } else {
-                        console.error("❌ FILE NON TROVATO (404): " + file.url);
-                    }
-                } catch (e) { 
-                    console.error("🚨 ERRORE CRITICO su " + file.nome + ":", e);
-                }
-            }
-        }
                 
                 const keys = await localforage.keys();
                 for (let key of keys) {
@@ -613,7 +669,7 @@
                     }
                 }
                 window.appReady = true; saveAppState(); renderLayers(); generaPatternSVG();
-           } catch (err) { console.error("🚨 ERRORE GLOBALE:", err); window.appReady = true; }
+            } catch (err) { console.error("🚨 ERRORE GLOBALE SUL CARICAMENTO:", err); window.appReady = true; }
             document.getElementById('loadingOverlay').style.display = 'none';
         };
 
@@ -681,16 +737,13 @@
                                 try { 
                                     let geomType = l.feature.geometry.type; 
                                     
-                                    // 1. Se è un'Area (es. PPTR, Fotovoltaico)
                                     if (geomType === 'Polygon' || geomType === 'MultiPolygon') { 
                                         isInside = turf.booleanPointInPolygon(clickedPt, l.feature); 
                                     } 
-                                    // 2. Se è un Punto (es. Pale Eoliche) -> Tolleranza di 15 pixel dal clic
                                     else if (geomType === 'Point' || geomType === 'MultiPoint') {
                                         let layerPt = map.latLngToContainerPoint(l.getLatLng());
                                         if (layerPt.distanceTo(e.containerPoint) < 15) isInside = true;
                                     }
-                                    // 3. Se è una Linea (es. Strade, Fiumi) -> Tolleranza di 20 metri
                                     else if (geomType === 'LineString' || geomType === 'MultiLineString') {
                                         isInside = turf.pointToLineDistance(clickedPt, l.feature, {units: 'kilometers'}) < 0.02;
                                     }
@@ -715,7 +768,62 @@
             }
         });
         
-        function esportaMappa(formato) { alert("Elaborazione esportazione..."); }
+        async function esportaMappa(formato) {
+            const loadingOverlay = document.getElementById('loadingOverlay');
+            const loadingDesc = document.getElementById('loadingDesc');
+            loadingDesc.innerText = "Generazione " + formato.toUpperCase() + " in corso... (potrebbe richiedere qualche secondo)";
+            loadingOverlay.style.display = 'flex';
+
+            try {
+                const mapElement = document.getElementById('map');
+                
+                const canvas = await html2canvas(mapElement, {
+                    useCORS: true,
+                    allowTaint: false,
+                    scale: 2 
+                });
+
+                if (formato === 'png' || formato === 'jpg') {
+                    const mimeType = formato === 'png' ? 'image/png' : 'image/jpeg';
+                    const dataUrl = canvas.toDataURL(mimeType, formato === 'jpg' ? 0.9 : 1.0);
+                    
+                    const link = document.createElement('a');
+                    link.download = `Estratto_Mappa_Puglia.${formato}`;
+                    link.href = dataUrl;
+                    link.click();
+                } 
+                else if (formato === 'pdf') {
+                    const { jsPDF } = window.jspdf;
+                    const orientation = canvas.width > canvas.height ? 'l' : 'p';
+                    const pdf = new jsPDF(orientation, 'mm', 'a4');
+                    
+                    const pdfWidth = pdf.internal.pageSize.getWidth();
+                    const pdfHeight = pdf.internal.pageSize.getHeight();
+                    
+                    const canvasRatio = canvas.width / canvas.height;
+                    const pdfRatio = pdfWidth / pdfHeight;
+                    
+                    let finalWidth = pdfWidth;
+                    let finalHeight = pdfHeight;
+                    
+                    if (canvasRatio > pdfRatio) {
+                        finalHeight = pdfWidth / canvasRatio;
+                    } else {
+                        finalWidth = pdfHeight * canvasRatio;
+                    }
+                    
+                    const imgData = canvas.toDataURL('image/jpeg', 0.85);
+                    pdf.addImage(imgData, 'JPEG', 0, 0, finalWidth, finalHeight);
+                    pdf.save(`Estratto_Mappa_Puglia.pdf`);
+                }
+            } catch (error) {
+                console.error("Errore durante l'esportazione:", error);
+                alert("Si è verificato un errore. Controlla la console.");
+            }
+            
+            loadingOverlay.style.display = 'none';
+            loadingDesc.innerText = "Attendere prego...";
+        }
     </script>
 </body>
 </html>
