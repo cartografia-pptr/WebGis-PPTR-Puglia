@@ -381,7 +381,15 @@
         map.on('measurestart', function() { window.isMeasuring = true; });
         map.on('measurefinish', function() { setTimeout(() => { window.isMeasuring = false; }, 200); });
 
-        const wmsOptions = { layers: '0', format: 'image/jpeg', transparent: false, version: '1.3.0', attribution: '© SIT Puglia', maxNativeZoom: 19, maxZoom: 25, keepBuffer: 8, updateWhenIdle: true, fixCache: '1' };
+        const wmsOptions = { 
+            layers: '0', 
+            format: 'image/png', 
+            transparent: true, 
+            version: '1.3.0', 
+            attribution: '© SIT Puglia', 
+            maxNativeZoom: 19, 
+            maxZoom: 25 
+        };
 
 const catastoAdE = L.tileLayer.wms('https://wms.cartografia.agenziaentrate.gov.it/inspire/wms/ows01.php', {
             layers: 'CP.CadastralParcel',
