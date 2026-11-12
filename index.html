@@ -383,7 +383,16 @@
 
         const wmsOptions = { layers: '0', format: 'image/jpeg', transparent: false, version: '1.3.0', attribution: '© SIT Puglia', maxNativeZoom: 19, maxZoom: 25, keepBuffer: 8, updateWhenIdle: true, fixCache: '1' };
 
-        const mioCatastoLocale = L.tileLayer('./catasto_tasselli/{z}/{x}/{y}.png', { minZoom: 14, maxNativeZoom: 21, maxZoom: 25, crossOrigin: true, attribution: '© Elaborazione Interna Catasto' });
+        const catastoAdE = L.tileLayer.wms('https://wms.cartografia.agenziaentrate.gov.it/inspire/wms/ows01.php', {
+    layers: 'CP.CadastralZoning,CP.CadastralParcel,fabbricati,strade,acque', // Fogli, Particelle, Fabbricati, Strade, Acque
+    format: 'image/png',
+    transparent: true,
+    version: '1.3.0',
+    minZoom: 14,
+    maxNativeZoom: 20,
+    maxZoom: 25,
+    attribution: '© Agenzia delle Entrate'
+});
         const baseMapOSM = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxNativeZoom: 19, maxZoom: 25, crossOrigin: true });
         const openTopoMap = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', { maxNativeZoom: 15, maxZoom: 25, crossOrigin: true, attribution: '© OpenTopoMap, SRTM' });
 
@@ -404,7 +413,7 @@
             { id: 'opentopo', name: '⛰️ Rilievo Topografico (OpenTopo)', layer: openTopoMap, active: false, opacity: 1 },
             { id: 'igm25k', name: '🗺️ IGM 25k Puglia', layer: igmLayer, active: false, opacity: 1 },
             { id: 'ctr2006', name: '🗺️ CTR Puglia 2006', layer: ctrLayer, active: false, opacity: 1 },
-            { id: 'catastolocale', name: '🗺️ Catasto Locale (Tasselli QGIS)', layer: mioCatastoLocale, active: false, opacity: 1 },
+            { id: 'catasto_ade', name: '🗺️ Catasto (Agenzia Entrate)', layer: catastoAdE, active: false, opacity: 1 },
             { id: 'esrisat', name: '🛰️ Satellite (Esri World Imagery)', layer: esriSat, active: false, opacity: 1 },
             { id: 'googlesat', name: '🛰️ Satellite (Google Maps)', layer: googleSat, active: false, opacity: 1 },
             { id: 'orto23', name: '📷 Ortofoto Puglia 2023', layer: orto2023, active: false, opacity: 1 },
